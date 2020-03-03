@@ -31,7 +31,7 @@ In order to run the scripts you need:
 
 In a Debian/Ubuntu system you'll get them running:
 
-```¤ sudo apt-get install python3 kicad python3-wxgtk4.0 imagemagick poppler-utils xdg-utils```
+```$ sudo apt-get install python3 kicad python3-wxgtk4.0 imagemagick poppler-utils xdg-utils```
 
 
 ## Standalone use
@@ -48,7 +48,7 @@ In a Debian/Ubuntu system you'll get them running:
 ```
 3. Now we have to define the *kicad_pcb* plug-in. This is done in the *gitconfig* file. In order to make it local to this repo you have to configure git to include the local file *.gitconfig*:
  ```
- ¤ git config --local include.path ../.gitconfig
+ $ git config --local include.path ../.gitconfig
  ```
 4. Now we create a *.gitconfig* file at the root of the repo defining the plug-in action:
 ```
