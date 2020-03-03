@@ -36,29 +36,27 @@ In a Debian/Ubuntu system you'll get them running:
 
 ## Standalone use
 
-1. Copy the python scripts to some executable directory in your path (i.e. to /usr/local/bin/)
-2. Well ... that's all
+1. As root run:
+```
+# make install
+```
+
+The scripts will be copied to */usr/local/bin*. If you want to install the scripts in */usr/bin* run
+
+```
+# make prefix=/usr install
+```
 
 ## Git plug-in
 
-1. Copy the python scripts to some executable directory in your path (i.e. to /usr/local/bin/)
-2. To force git to look for a plug-in to show diffs between KiCad PCBs create a *.gitattributes* file at the root of your repo containing:
-```
-*.kicad_pcb diff=kicad_pcb
-```
-3. Now we have to define the *kicad_pcb* plug-in. This is done in the *gitconfig* file. In order to make it local to this repo you have to configure git to include the local file *.gitconfig*:
- ```
- $ git config --local include.path ../.gitconfig
- ```
-4. Now we create a *.gitconfig* file at the root of the repo defining the plug-in action:
-```
-[diff "kicad_pcb"]
-       command=/usr/local/bin/kicad_pcb-git-diff.py -v
-```
-5.  If you want to exclude some layers from the diff create a file named *.kicad_pcb-git-diff* at the root of your repo containing the names of the layer to be excluded. You have to use line for each layer.
+1. Install the scripts
+2. To initialize a repo just run the *kicad_pcb-diff-init.py* script from the root of the repo.
+This will configure the repo to read extra configuration from the *.gitconfig* file.
+It will also associate the *kicad_pcb* file extension with the *kicad_pcb-git-diff.py* script.
+3. The initialization script will create a list of layers to be excluded in the *.kicad_pcb-git-diff* file.
+Review this file and adjust it to your needs. Lines starting with *#* will be ignored.
 
-An example of *.gitconfig*, *gitconfig* and *.kicad_pcb-git-diff* can be found in this repo.
-Once configured the tool will be used every time you do a git diff.
+Once configured the tool will be used every time you do a diff using *git*.
 
 # Usage
 

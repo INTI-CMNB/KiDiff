@@ -1,3 +1,9 @@
+kicad-pcb-diff (1.1.0-1) testing; urgency=medium
+
+  * Added script to init the repo.
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Tue, 03 Mar 2020 09:17:18 -0300
+
 kicad-pcb-diff (1.0.0-1) unstable; urgency=low
 
   * Initial release.

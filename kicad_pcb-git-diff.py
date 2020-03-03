@@ -8,7 +8,7 @@ __author__   ='Salvador E. Tropea'
 __copyright__='Copyright 2020, INTI'
 __credits__  =['Salvador E. Tropea','Jesse Vincent']
 __license__  ='GPL 2.0'
-__version__  ='1.0.0'
+__version__  ='1.1.0'
 __email__    ='salvador@inti.gob.ar'
 __status__   ='beta'
 # PCB diff tool

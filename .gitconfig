@@ -1,3 +1,0 @@
-[diff "kicad_pcb"]
-	command=/usr/bin/kicad_pcb-git-diff.py -v
-
