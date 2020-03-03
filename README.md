@@ -33,6 +33,7 @@ In a Debian/Ubuntu system you'll get them running:
 
 ```$ sudo apt-get install python3 kicad python3-wxgtk4.0 imagemagick poppler-utils xdg-utils```
 
+Note: if you are using Debian, or some derived distro like Ubuntu, you can find a Debian package in the releases section.
 
 ## Standalone use
 
@@ -46,6 +47,8 @@ The scripts will be copied to */usr/local/bin*. If you want to install the scrip
 ```
 # make prefix=/usr install
 ```
+
+Note: if you are using Debian, or some derived distro like Ubuntu, you can find a Debian package in the releases section.
 
 ## Git plug-in
 
