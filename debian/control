@@ -1,0 +1,20 @@
+Source: kicad-pcb-diff
+Section: electronics
+Priority: optional
+Maintainer: Salvador Eduardo Tropea <salvador@inti.gob.ar>
+Build-Depends: debhelper (>=11~), dh-python, python3-all
+Standards-Version: 4.1.4
+Homepage: https://github.com/INTI-CMNB/kicad_pcb-diff
+X-Python3-Version: >= 3.2
+
+Package: kicad-pcb-diff
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), python3-wxgtk4.0, imagemagick, poppler-utils, xdg-utils
+Recommends: git
+Description: KiCad PCB diff tool
+ This package provides a tool to compute the difference between two
+ PCB files created with KiCad.
+ .
+ It also includes a plug-in for git.
+

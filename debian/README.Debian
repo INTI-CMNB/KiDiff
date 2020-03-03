@@ -1,0 +1,5 @@
+kicad-pcb-diff for Debian
+
+This is a simple package for the KiCad PCB diff tool.
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Tue, 03 Mar 2020 07:17:31 -0300
