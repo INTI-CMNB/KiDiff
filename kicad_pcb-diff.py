@@ -21,16 +21,16 @@ __author__   ='Salvador E. Tropea'
 __copyright__='Copyright 2020, INTI/'+__author__
 __credits__  =['Salvador E. Tropea','Jesse Vincent']
 __license__  ='GPL 2.0'
-__version__  ='1.1.0'
+__version__  ='1.2.0'
 __email__    ='salvador@inti.gob.ar'
 __status__   ='beta'
 
-from os.path import (isfile,isdir,basename,sep,splitext)
-from os import (makedirs,wait,rename)
-from sys import (exit)
-from shutil import (rmtree,which)
-from tempfile import (mkdtemp)
-from hashlib import (sha1)
+from os.path import isfile, isdir, basename, sep, splitext
+from os import makedirs, wait, rename
+from sys import exit
+from shutil import rmtree, which
+from tempfile import mkdtemp
+from hashlib import sha1
 from pcbnew import *
 from subprocess import (call)
 import atexit
@@ -49,6 +49,8 @@ FAILED_TO_CONVERT=5
 FAILED_TO_DIFF=6
 FAILED_TO_JOIN=7
 WRONG_EXCLUDE=8
+kicad_version_major = kicad_version_minor = kicad_version_patch = 0
+
 
 def GenPCBImages(pcb,pcb_hash):
     # Check if we have a valid cache
@@ -64,7 +66,9 @@ def GenPCBImages(pcb,pcb_hash):
     popt.SetOutputDirectory(hash_dir)
     # Options
     popt.SetPlotFrameRef(False)
-    popt.SetLineWidth(FromMM(0.35))
+    # KiCad 5 only
+    if kicad_version_major == 5:
+        popt.SetLineWidth(FromMM(0.35))
     popt.SetAutoScale(False)
     popt.SetScale(1)
     popt.SetMirror(False)
@@ -203,6 +207,16 @@ if __name__=='__main__':
        old_pcb_hash=GetDigest(old_pcb)
     logger.debug('%s SHA1 is %s' % (old_pcb,old_pcb_hash))
 
+    # KiCad version
+    kicad_version = GetBuildVersion()
+    m = re.search(r'(\d+)\.(\d+)\.(\d+)', kicad_version)
+    if m is None:
+        logger.error("Unable to detect KiCad version, got: `{}`".format(kicad_version))
+        exit(MISSING_TOOLS)
+    kicad_version_major = int(m.group(1))
+    kicad_version_minor = int(m.group(2))
+    kicad_version_patch = int(m.group(3))
+
     new_pcb=args.new_pcb
     if not isfile(new_pcb):
        logger.error('%s isn\'t a valid file name' % new_pcb)
@@ -256,9 +270,13 @@ if __name__=='__main__':
            z=re.match('\s+\((\d+)\s+(\S+)',line)
            if z:
               res=z.groups()
-              logger.debug(res[1]+'->'+res[0])
-              if not res[1] in layer_exclude:
-                 layer_names[int(res[0])]=res[1]
+              lname = res[1]
+              if lname[0] == '"':
+                  lname = lname[1:-1]
+              lnum = res[0]
+              logger.debug(lname+'->'+lnum)
+              if not lname in layer_exclude:
+                 layer_names[int(lnum)] = lname
               else:
                  logger.debug('Excluding layer '+res[1])
            else:
