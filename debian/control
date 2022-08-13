@@ -10,7 +10,7 @@ X-Python3-Version: >= 3.2
 Package: kicad-pcb-diff
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), python3-wxgtk4.0, imagemagick, poppler-utils, xdg-utils
+Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils, xdg-utils
 Recommends: git
 Description: KiCad PCB diff tool
  This package provides a tool to compute the difference between two
