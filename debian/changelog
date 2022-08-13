@@ -1,3 +1,9 @@
+kicad-pcb-diff (1.2.0-1) stable; urgency=medium
+
+  * Added KiCad 6 support
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Sat, 13 Aug 2022 20:40:56 -0300
+
 kicad-pcb-diff (1.1.0-1) testing; urgency=medium
 
   * Added script to init the repo.
