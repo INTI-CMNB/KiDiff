@@ -1,15 +1,18 @@
-# kicad_pcb-diff
+# kicad-diff
 
 This program generates a PDF file showing the changes between two KiCad PCB
-files.
+or SCH files.
 
 PCBs are plotted into PDF files, one for each layer. Then ImageMagick is used
-to compare the layers and JPG files are generated. The JPGs are finally
+to compare the layers and PNG files are generated. The PNGs are finally
 assembled into one PDF file and the default PDF reader is invoked.
 All the intermediate files are generated in the system temporal directory and
 removed as soon as the job is finished. You can cache the layers PDFs
 specifying a cache directory and keep the resulting diff images specifying an
 output directory.
+
+For SCHs the process is similar, but using KiAuto. Note that one schematic
+is compared at a time.
 
 The default resolution for the images is 150 DPI. It can be increased for
 better images, at the cost of (exponetially) longer execution times. You can
@@ -24,14 +27,15 @@ resource' command.
 In order to run the scripts you need:
 * Python 3.5 or newer
 * KiCad 5.1 or newer
-* Python3 wxWidgets (i.e. python3-wxgtk4.0)
+* Python3 wxWidgets (i.e. python3-wxgtk4.0). This is usually installed with KiCad.
 * ImageMagick tools (i.e. imagemagick Debian package)
 * pdftoppm tool (i.e. poppler-utils Debian package)
 * xdg-open tool (i.e. xdg-utils Debian package)
+* [KiAuto](https://github.com/INTI-CMNB/KiAuto/)
 
-In a Debian/Ubuntu system you'll get them running:
+In a Debian/Ubuntu system you'll first need to add this [repo](https://set-soft.github.io/debian/) and then use:
 
-```$ sudo apt-get install python3 kicad python3-wxgtk4.0 imagemagick poppler-utils xdg-utils```
+```$ sudo apt-get install python3 kicad imagemagick poppler-utils xdg-utils kiauto```
 
 Note: if you are using Debian, or some derived distro like Ubuntu, you can find a Debian package in the releases section.
 
@@ -53,17 +57,17 @@ Note: if you are using Debian, or some derived distro like Ubuntu, you can find 
 ## Git plug-in
 
 1. Install the scripts
-2. To initialize a repo just run the *kicad_pcb-diff-init.py* script from the root of the repo.
+2. To initialize a repo just run the *kicad-diff-init.py* script from the root of the repo.
 This will configure the repo to read extra configuration from the *.gitconfig* file.
-It will also associate the *kicad_pcb* file extension with the *kicad_pcb-git-diff.py* script.
-3. The initialization script will create a list of layers to be excluded in the *.kicad_pcb-git-diff* file.
+It will also associate the *kicad_pcb* file extension with the *kicad-git-diff.py* script.
+3. The initialization script will create a list of layers to be excluded in the *.kicad-git-diff* file.
 Review this file and adjust it to your needs. Lines starting with *#* will be ignored.
 
 Once configured the tool will be used every time you do a diff using *git*.
 
 # Usage
 
-The *kicad_pcb-git-diff.py* is a plug-in for *git* so you just need to configure *git* and then it becomes transparent. If you need to create a diff between two files outside *git* you can use the *kicad_pcb-diff.py* script.
+The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure *git* and then it becomes transparent. If you need to create a diff between two files outside *git* you can use the *kicad-diff.py* script.
 
 You have to provide the name of the two PCBs to be compared. The additional command line options are:
 
@@ -80,7 +84,7 @@ Increases the level of verbosity. The default is a quite, specifying one level (
 Print the script version, copyright and license.
 
 ## --cache_dir
-The PCB files are plotted to PDF files. One PDF file for layer. To avoid plotting them over and over you can specify a cache directory to store the PDFs.
+The PCB/SCH files are plotted to PDF files. One PDF file for layer. To avoid plotting them over and over you can specify a cache directory to store the PDFs.
 
 ## --output_dir
 Two seconds after invoking the PDF viewer the output files are removed. If you want to keep them for later review, or two seconds isn't enough for your system, you can specify a directory to store the generated files.
@@ -92,12 +96,12 @@ The PDF files are converted to bitmaps to be compared. The default resolution fo
  
  Consult ImageMagick documentation in order to increase them.
  
-## --old_pcb_hash
-The plotted PDF files for each layer are stored in the cache directory using a SHA1 of the PCB file as name for the directory. You can specify another hash here to identify the old PCB file. 
+## --old_file_hash
+The plotted PDF files for each layer are stored in the cache directory using a SHA1 of the PCB/SCH file as name for the directory. You can specify another hash here to identify the old PCB/SCH file. 
 The *git* plug-in uses the hash provided by *git* instead of the SHA1 for the file.
 
-## --new_pcb_hash
-This is the equivalent of the *--old_pcb_hash* option used for the new PCB file.
+## --new_file_hash
+This is the equivalent of the *--old_file_hash* option used for the new PCB/SCH file.
 
 ## --exclude
 Specifies the name of a file containing a list of layers to be excluded. Each line of the file is interpreted as a layer name. An example for this file could be:
@@ -112,7 +116,7 @@ Edge.Cuts
 Margin
 ```
 
-Note that when using the *git* plug-in the script looks for a file named *.kicad_pcb-git-diff* at the root of the repo.
+Note that when using the *git* plug-in the script looks for a file named *.kicad-git-diff* at the root of the repo.
 
 Using this you can reduce the time wasted computing diffs for empty or useless layers.
 
