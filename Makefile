@@ -10,17 +10,17 @@ deb_clean:
 	fakeroot debian/rules clean
 
 install:
-	install -D kicad_pcb-diff.py $(DESTDIR)$(prefix)/bin/kicad_pcb-diff.py
-	install -D kicad_pcb-git-diff.py $(DESTDIR)$(prefix)/bin/kicad_pcb-git-diff.py
-	install -D kicad_pcb-diff-init.py $(DESTDIR)$(prefix)/bin/kicad_pcb-diff-init.py
+	install -D kicad-diff.py $(DESTDIR)$(prefix)/bin/kicad-diff.py
+	install -D kicad-git-diff.py $(DESTDIR)$(prefix)/bin/kicad-git-diff.py
+	install -D kicad-diff-init.py $(DESTDIR)$(prefix)/bin/kicad-diff-init.py
 
 clean:
 
 distclean: clean
 
 uninstall:
-	-rm -f $(DESTDIR)$(prefix)/bin/kicad_pcb-diff.py
-	-rm -f $(DESTDIR)$(prefix)/bin/kicad_pcb-git-diff.py
-	-rm -f $(DESTDIR)$(prefix)/bin/kicad_pcb-diff-init.py
+	-rm -f $(DESTDIR)$(prefix)/bin/kicad-diff.py
+	-rm -f $(DESTDIR)$(prefix)/bin/kicad-git-diff.py
+	-rm -f $(DESTDIR)$(prefix)/bin/kicad-diff-init.py
 
 .PHONY: all install clean distclean uninstall deb deb_clean

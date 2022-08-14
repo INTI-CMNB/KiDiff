@@ -10,11 +10,11 @@ X-Python3-Version: >= 3.2
 Package: kicad-pcb-diff
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils, xdg-utils
+Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils, xdg-utils, kiauto
 Recommends: git
-Description: KiCad PCB diff tool
+Description: KiCad PCB/SCH diff tool
  This package provides a tool to compute the difference between two
- PCB files created with KiCad.
+ PCB/SCH files created with KiCad.
  .
  It also includes a plug-in for git.
 

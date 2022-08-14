@@ -1,15 +1,21 @@
 #!/usr/bin/python3
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020-2022 Salvador E. Tropea
+# Copyright (c) 2020-2022 Instituto Nacional de Tecnologïa Industrial
+# License: GPL-2.0
+# Project: KiCad Diff
+# Adapted from: https://github.com/obra/kicad-tools
 """
-KiCad PCB diff tool
+KiCad diff tool
 
 This program is a git plug-in to generate diffs between two KiCad PCBs.
-It relies on kicad_pcb-diff.py script (where the real work is done).
+It relies on kicad-diff.py script (where the real work is done).
 """
 __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020, INTI'
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '1.2.0'
+__version__ = '2.0.0'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 # PCB diff tool
@@ -26,15 +32,15 @@ OLD_PCB_INVALID = 1
 NEW_PCB_INVALID = 2
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='KiCad PCB diff wrapper for Git')
+    parser = argparse.ArgumentParser(description='KiCad diff wrapper for Git')
 
-    parser.add_argument('old_pcb_name', help='PCB name')
-    parser.add_argument('old_pcb_file', help='Original PCB file')
-    parser.add_argument('old_pcb_hash', help='Original PCB hash')
-    parser.add_argument('old_pcb_perm', help='Original PCB perms')
-    parser.add_argument('new_pcb_file', help='New PCB file')
-    parser.add_argument('new_pcb_hash', help='New PCB hash')
-    parser.add_argument('new_pcb_perm', help='New PCB perms')
+    parser.add_argument('old_file_name', help='PCB/SCH name')
+    parser.add_argument('old_file_file', help='Original PCB/SCH file')
+    parser.add_argument('old_file_hash', help='Original PCB/SCH hash')
+    parser.add_argument('old_file_perm', help='Original PCB/SCH perms')
+    parser.add_argument('new_file_file', help='New PCB/SCH file')
+    parser.add_argument('new_file_hash', help='New PCB/SCH hash')
+    parser.add_argument('new_file_perm', help='New PCB/SCH perms')
 
     parser.add_argument('--resolution', nargs=1, help='Image resolution in DPIs [150]', default=['150'])
     parser.add_argument('--verbose', '-v', action='count', default=0)
@@ -57,14 +63,14 @@ if __name__ == '__main__':
     logger = logging.getLogger(basename(__file__))
 
     # Check the arguments
-    old_pcb = args.old_pcb_file
-    if not isfile(old_pcb):
-        logger.error('%s isn\'t a valid file name' % old_pcb)
+    old_file = args.old_file_file
+    if not isfile(old_file):
+        logger.error('%s isn\'t a valid file name' % old_file)
         exit(OLD_PCB_INVALID)
 
-    new_pcb = args.new_pcb_file
-    if not isfile(new_pcb):
-        logger.error('%s isn\'t a valid file name' % new_pcb)
+    new_file = args.new_file_file
+    if not isfile(new_file):
+        logger.error('%s isn\'t a valid file name' % new_file)
         exit(NEW_PCB_INVALID)
 
     resolution = int(args.resolution[0])
@@ -75,7 +81,7 @@ if __name__ == '__main__':
     if not isdir(dir_git):
         logger.error('can\'t find the git repo (no '+dir_git+')')
     else:
-        dir_cache = dir_git+sep+'kicad_pcb-git-cache'
+        dir_cache = dir_git+sep+'kicad-git-cache'
         if not isdir(dir_cache):
             try:
                 mkdir(dir_cache)
@@ -83,17 +89,17 @@ if __name__ == '__main__':
                 logger.error('can\'t create cache dir ('+dir_cache+')')
                 dir_cache = None
 
-    command = [dirname(realpath(__file__))+sep+'kicad_pcb-diff.py', '--resolution', str(resolution),
-               '--old_pcb_hash', args.old_pcb_hash, '--new_pcb_hash', args.new_pcb_hash]
+    command = [dirname(realpath(__file__))+sep+'kicad-diff.py', '--resolution', str(resolution),
+               '--old_file_hash', args.old_file_hash, '--new_file_hash', args.new_file_hash]
     if verb is not None:
         command.append(verb)
     if dir_cache is not None:
         command.append('--cache_dir')
         command.append(dir_cache)
-    if isfile('.kicad_pcb-git-diff'):
+    if isfile('.kicad-git-diff'):
         command.append('--exclude')
-        command.append('.kicad_pcb-git-diff')
-    command.append(old_pcb)
-    command.append(new_pcb)
+        command.append('.kicad-git-diff')
+    command.append(old_file)
+    command.append(new_file)
     logger.debug(command)
     call(command)

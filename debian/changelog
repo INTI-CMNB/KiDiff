@@ -1,3 +1,9 @@
+kicad-pcb-diff (2.0.0-1) stable; urgency=medium
+
+  * Added SCH support
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Sun, 14 Aug 2022 13:23:10 -0300
+
 kicad-pcb-diff (1.2.0-1) stable; urgency=medium
 
   * Added KiCad 6 support

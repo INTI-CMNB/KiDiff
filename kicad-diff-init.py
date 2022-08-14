@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# Copyright (c) 2020-2022 Salvador E. Tropea
+# Copyright (c) 2020-2022 Instituto Nacional de Tecnologïa Industrial
+# License: GPL-2.0
+# Project: KiCad Diff
 """
-KiCad PCB diff tool
+KiCad diff tool
 
-This program initializes a repo to use the kicad_pcb-git-diff plug-in.
+This program initializes a repo to use the kicad-git-diff plug-in.
 """
 __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020, INTI'
 __credits__ = ['Salvador E. Tropea']
 __license__ = 'GPL 2.0'
-__version__ = '1.2.0'
+__version__ = '2.0.0'
 __email__ = 'stopea@inti.gob.ar'
 __status__ = 'beta'
 
@@ -28,7 +33,7 @@ MISSING_SCRIPTS = 3
 
 git_attributes = '.gitattributes'
 git_config = '.gitconfig'
-layers_file = '.kicad_pcb-git-diff'
+layers_file = '.kicad-git-diff'
 
 
 def CheckAttributes():
@@ -49,14 +54,14 @@ def CheckCommand():
         return False
     with open(git_config, "r") as cfg_file:
         for line in cfg_file:
-            if re.match(r'^\[diff\s+\"kicad_pcb_diff\"', line):
+            if re.match(r'^\[diff\s+\"kicad_diff\"', line):
                 cfg_file.close()
                 return True
     return False
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='KiCad PCB diff GIT repo initialization')
+    parser = argparse.ArgumentParser(description='KiCad diff GIT repo initialization')
 
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', '-V', action='version', version='%(prog)s '+__version__+' - ' +
@@ -81,7 +86,7 @@ if __name__ == '__main__':
     if which('git') is None:
         logger.error('No git command, install it')
         exit(MISSING_GIT)
-    if which('kicad_pcb-git-diff.py') is None:
+    if which('kicad-git-diff.py') is None:
         logger.error('Please install the diff scripts first')
         exit(MISSING_SCRIPTS)
 
@@ -103,16 +108,18 @@ if __name__ == '__main__':
     else:
         logger.info('Associating the KiCad PCB extension to a diff plug-in')
         with open(git_attributes, "a+") as attr_file:
-            attr_file.write("*.kicad_pcb diff=kicad_pcb_diff\n")
+            attr_file.write("*.kicad_pcb diff=kicad_diff\n")
+            attr_file.write("*.kicad_sch diff=kicad_diff\n")
+            attr_file.write("*.sch diff=kicad_diff\n")
 
     # Add a command to the new attribute
     if CheckCommand():
         logger.info('Command already configured')
     else:
-        logger.info('Defining a command to compute a diff between KiCad PCB files')
+        logger.info('Defining a command to compute a diff between KiCad PCB/SCH files')
         with open(git_config, "a+") as cfg_file:
-            cfg_file.write('[diff "kicad_pcb_diff"]\n')
-            cfg_file.write("\tcommand="+which('kicad_pcb-git-diff.py')+" -v\n")
+            cfg_file.write('[diff "kicad_diff"]\n')
+            cfg_file.write("\tcommand="+which('kicad-git-diff.py')+" -v\n")
 
     # Add a list of layers to be excluded
     if isfile(layers_file):
