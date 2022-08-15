@@ -116,7 +116,7 @@ if __name__ == '__main__':
     if CheckCommand():
         logger.info('Command already configured')
     else:
-        logger.info('Defining a command to compute a diff between KiCad PCB/SCH files')
+        logger.info("Defining a command to compute a diff between KiCad PCB/SCH files")
         with open(git_config, "a+") as cfg_file:
             cfg_file.write('[diff "kicad_diff"]\n')
             cfg_file.write("\tcommand="+which('kicad-git-diff.py')+" -v\n")

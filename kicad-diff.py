@@ -178,8 +178,8 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
             res = run(cmd, stdout=PIPE, stderr=STDOUT)
             errors = int(res.stdout.decode())
             logger.debug('AE for {}: {}'.format(layer, errors))
-            if args.thresold and errors > args.thresold:
-                logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.thresold))
+            if args.threshold and errors > args.threshold:
+                logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
                 exit(DIFF_TOO_BIG)
             cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
                    'text 10,'+font_size+" '"+name_layer+"'", diff_name]
@@ -285,14 +285,14 @@ if __name__ == '__main__':
                         choices=['red_green', 'stats'], default='red_green')
     parser.add_argument('--exclude', nargs=1, help='Exclude layers in file (one layer per line)')
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
-    parser.add_argument('--fuzz', help='Color tollerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
+    parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
                         default=5, metavar='[0-100]')
     parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
     parser.add_argument('--no_reader', help='Don\'t open the PDF reader', action='store_false')
     parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
-    parser.add_argument('--output_dir', nargs=1, help='Directory for the output files')
+    parser.add_argument('--output_dir', nargs=1, help="Directory for the output files")
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
-    parser.add_argument('--thresold', help='Error thresold for diff stats mode, 0 is no error [%(default)s]',
+    parser.add_argument('--threshold', help='Error threshold for diff stats mode, 0 is no error [%(default)s]',
                         type=thre_type, default=0, metavar='[0-1000000]')
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', action='version', version='%(prog)s '+__version__+' - ' +
