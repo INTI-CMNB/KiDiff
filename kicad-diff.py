@@ -87,8 +87,8 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
     # Plot all used layers to PDF files
     for i, layer in layer_names.items():
         layer_rep = layer.replace('.', '_')
-        name_pdf_kicad = '%s%s%s-%s.pdf' % (hash_dir, sep, file_no_ext, layer_rep)
-        name_pdf = '%s%s%s.pdf' % (hash_dir, sep, layer_rep)
+        name_pdf_kicad = '{}{}{}-{}.pdf'.format(hash_dir, sep, file_no_ext, layer_rep)
+        name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_rep)
         # Create the PDF, or use a cached version
         if not isfile(name_pdf):
             logger.info('Plotting %s layer' % layer)
@@ -107,7 +107,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
 
 
 def GenSCHImage(file, file_hash, hash_dir, file_no_ext):
-    name_pdf = '%s%sSchematic.pdf' % (hash_dir, sep)
+    name_pdf = '{}{}Schematic.pdf'.format(hash_dir, sep)
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
         logger.info('Plotting the schematic')
@@ -124,7 +124,7 @@ def GenSCHImage(file, file_hash, hash_dir, file_no_ext):
 def GenImages(file, file_hash):
     # Check if we have a valid cache
     hash_dir = cache_dir+sep+file_hash
-    logger.debug('Cache for %s will be %s' % (file, hash_dir))
+    logger.debug('Cache for {} will be {}'.format(file, hash_dir))
     if isdir(hash_dir):
         logger.info('cache dir for `%s` already exists' % file)
 
@@ -197,9 +197,9 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
         layer = layer_names[i]
         name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
         layer_rep = layer.replace('.', '_')
-        old_name = '%s%s%s.pdf' % (old_hash_dir, sep, layer_rep)
-        new_name = '%s%s%s.pdf' % (new_hash_dir, sep, layer_rep)
-        diff_name = '%s%s%s-%s.png' % (output_dir, sep, 'diff', layer_rep)
+        old_name = '{}{}{}.pdf'.format(old_hash_dir, sep, layer_rep)
+        new_name = '{}{}{}.pdf'.format(new_hash_dir, sep, layer_rep)
+        diff_name = '{}{}{}-{}.png'.format(output_dir, sep, 'diff', layer_rep)
         logger.info('Creating diff for %s' % layer)
         if args.diff_mode == 'red_green':
             create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
@@ -210,7 +210,7 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
             exit(FAILED_TO_DIFF)
         files.append(diff_name)
     # Join all the JPGs into one PDF
-    output_pdf = '%s%sdiff.pdf' % (output_dir, sep)
+    output_pdf = '{}{}diff.pdf'.format(output_dir, sep)
     files.append(output_pdf)
     logger.info('Joining all diffs into one PDF')
     logger.debug(files)
@@ -343,7 +343,7 @@ if __name__ == '__main__':
         old_file_hash = args.old_file_hash[0]
     else:
         old_file_hash = GetDigest(old_file)
-    logger.debug('%s SHA1 is %s' % (old_file, old_file_hash))
+    logger.debug('{} SHA1 is {}'.format(old_file, old_file_hash))
 
     new_file = args.new_file
     if not isfile(new_file):
@@ -353,7 +353,7 @@ if __name__ == '__main__':
         new_file_hash = args.new_file_hash[0]
     else:
         new_file_hash = GetDigest(new_file)
-    logger.debug('%s SHA1 is %s' % (new_file, new_file_hash))
+    logger.debug('{} SHA1 is {}'.format(new_file, new_file_hash))
 
     if args.cache_dir:
         cache_dir = args.cache_dir[0]
