@@ -91,7 +91,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
         name_pdf = '%s%s%s.pdf' % (hash_dir, sep, layer_rep)
         # Create the PDF, or use a cached version
         if not isfile(name_pdf):
-            logger.info('Ploting %s layer' % layer)
+            logger.info('Plotting %s layer' % layer)
             pctl.SetLayer(i)
             pctl.OpenPlotfile(layer, PLOT_FORMAT_PDF, layer)
             pctl.PlotLayer()
@@ -110,7 +110,7 @@ def GenSCHImage(file, file_hash, hash_dir, file_no_ext):
     name_pdf = '%s%sSchematic.pdf' % (hash_dir, sep)
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
-        logger.info('Ploting the schematic')
+        logger.info('Plotting the schematic')
         cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf, file, '.']
         logger.debug('Executing: '+str(cmd))
         call(cmd)
