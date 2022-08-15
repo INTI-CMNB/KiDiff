@@ -28,10 +28,11 @@ In order to run the scripts you need:
 * Python 3.5 or newer
 * KiCad 5.1 or newer
 * Python3 wxWidgets (i.e. python3-wxgtk4.0). This is usually installed with KiCad.
-* ImageMagick tools (i.e. imagemagick Debian package)
-* pdftoppm tool (i.e. poppler-utils Debian package)
-* xdg-open tool (i.e. xdg-utils Debian package)
-* [KiAuto](https://github.com/INTI-CMNB/KiAuto/)
+* ImageMagick tools (i.e. imagemagick Debian package). Used to manipulate images and create PDF files.
+* pdftoppm tool (i.e. poppler-utils Debian package). Used to decode PDF files.
+  * Alternative: Ghostscript (slower and worst results)
+* xdg-open tool (i.e. xdg-utils Debian package). Used to open the PDF viewer.
+* [KiAuto](https://github.com/INTI-CMNB/KiAuto/). Used to print the schematic in PDF format.
 
 In a Debian/Ubuntu system you'll first need to add this [repo](https://set-soft.github.io/debian/) and then use:
 

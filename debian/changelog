@@ -1,3 +1,10 @@
+kicad-pcb-diff (2.1.0-1) stable; urgency=medium
+
+  * Added stats diff mode
+  * Added alternative support for Ghostscript
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Mon, 15 Aug 2022 18:27:50 -0300
+
 kicad-pcb-diff (2.0.0-1) stable; urgency=medium
 
   * Added SCH support

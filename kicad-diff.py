@@ -29,7 +29,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2022, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 
@@ -42,12 +42,11 @@ from os import makedirs, rename
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
 import re
 from shutil import rmtree, which
-from subprocess import call
+from subprocess import call, PIPE, run, STDOUT
 from sys import exit
-from tempfile import mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 import time
 
-MAX_LAYERS = 50
 # Exit error codes
 OLD_INVALID = 1
 NEW_INVALID = 2
@@ -57,8 +56,11 @@ FAILED_TO_CONVERT = 5
 FAILED_TO_DIFF = 6
 FAILED_TO_JOIN = 7
 WRONG_EXCLUDE = 8
+WRONG_ARGUMENT = 9
+DIFF_TOO_BIG = 10
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
+use_poppler = True
 
 
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
@@ -134,26 +136,75 @@ def GenImages(file, file_hash):
         GenSCHImage(file, file_hash, hash_dir, file_no_ext)
 
 
+def cmd_pdf2miff(name, res, dest='miff:-'):
+    if use_poppler:
+        return 'cat {} | pdftoppm -r {} -gray - | convert - {}'.format(name, res, dest)
+    return ('convert -density {} {} -background white -alpha remove -alpha off '
+            '-threshold 50% -colorspace Gray -resample {} -depth 8 {}'.format(res*2, name, res, dest))
+
+
+def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
+    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
+    conv_old = cmd_pdf2miff(old_name, resolution)
+    conv_new = cmd_pdf2miff(new_name, resolution)
+    command = ['bash', '-c', '('+conv_old+' ; '+conv_new+') | ' +
+               r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine '+diff_name]
+    logger.debug('Executing: '+str(command))
+    run(command, check=True)
+
+
+def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
+    with NamedTemporaryFile(suffix='.png') as old_f:
+        # Convert the old file
+        cmd = ['bash', '-c', cmd_pdf2miff(old_name, resolution, old_f.name)]
+        logger.debug('Executing: '+str(cmd))
+        call(cmd)
+        with NamedTemporaryFile(suffix='.png') as new_f:
+            # Convert the new file
+            cmd = ['bash', '-c', cmd_pdf2miff(new_name, resolution, new_f.name)]
+            logger.debug('Executing: '+str(cmd))
+            call(cmd)
+            # Compare both
+            cmd = ['compare',
+                   # Tolerate 5 % error in color (configurable)
+                   '-fuzz', str(args.fuzz)+'%',
+                   # Count how many pixels differ
+                   '-metric', 'AE',
+                   new_f.name,
+                   old_f.name,
+                   '-colorspace', 'RGB',
+                   diff_name]
+            logger.debug('Executing: '+str(cmd))
+            res = run(cmd, stdout=PIPE, stderr=STDOUT)
+            errors = int(res.stdout.decode())
+            logger.debug('AE for {}: {}'.format(layer, errors))
+            if args.thresold and errors > args.thresold:
+                logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.thresold))
+                exit(DIFF_TOO_BIG)
+            cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
+                   'text 10,'+font_size+" '"+name_layer+"'", diff_name]
+            logger.debug('Executing: '+str(cmd))
+            call(cmd)
+
+
 def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
     files = ['convert']
     # Compute the difference between images for each layer, store JPGs
-    res = '-r '+str(resolution)
     font_size = str(int(resolution/5))
     for i in sorted(layer_names.keys()):
         layer = layer_names[i]
+        name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
         layer_rep = layer.replace('.', '_')
         old_name = '%s%s%s.pdf' % (old_hash_dir, sep, layer_rep)
         new_name = '%s%s%s.pdf' % (new_hash_dir, sep, layer_rep)
         diff_name = '%s%s%s-%s.png' % (output_dir, sep, 'diff', layer_rep)
         logger.info('Creating diff for %s' % layer)
-        text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \'Layer: '+layer+'\'" '
-        command = ['bash', '-c', '(cat '+old_name+' | pdftoppm '+res+' -gray - | convert - miff:- ; ' +
-                   'cat '+new_name+' | pdftoppm '+res+' -gray - | convert - miff:-) | ' +
-                   r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine '+diff_name]
-        logger.debug(command)
-        call(command)
+        if args.diff_mode == 'red_green':
+            create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
+        else:
+            create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
         if not isfile(diff_name):
             logger.error('Failed to create diff %s' % diff_name)
             exit(FAILED_TO_DIFF)
@@ -216,19 +267,34 @@ def load_layer_names(old_file):
     return layer_names
 
 
+def thre_type(astr, min=0, max=1e6):
+    value = int(astr)
+    if min <= value <= max:
+        return value
+    else:
+        raise argparse.ArgumentTypeError('value not in range %s-%s'%(min, max))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='KiCad diff')
 
     parser.add_argument('old_file', help='Original file (PCB/SCH)')
     parser.add_argument('new_file', help='New file (PCB/SCH)')
     parser.add_argument('--cache_dir', nargs=1, help='Directory to cache images')
-    parser.add_argument('--output_dir', nargs=1, help='Directory for the output files')
-    parser.add_argument('--resolution', nargs=1, help='Image resolution in DPIs [150]', default=['150'])
-    parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
-    parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
+    parser.add_argument('--diff_mode', help='How to compute the image difference [red_green]',
+                        choices=['red_green', 'stats'], default='red_green')
     parser.add_argument('--exclude', nargs=1, help='Exclude layers in file (one layer per line)')
-    parser.add_argument('--verbose', '-v', action='count', default=0)
+    parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
+    parser.add_argument('--fuzz', help='Color tollerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
+                        default=5, metavar='[0-100]')
+    parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
     parser.add_argument('--no_reader', help='Don\'t open the PDF reader', action='store_false')
+    parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
+    parser.add_argument('--output_dir', nargs=1, help='Directory for the output files')
+    parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
+    parser.add_argument('--thresold', help='Error thresold for diff stats mode, 0 is no error [%(default)s]',
+                        type=thre_type, default=0, metavar='[0-1000000]')
+    parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', action='version', version='%(prog)s '+__version__+' - ' +
                         __copyright__+' - License: '+__license__)
 
@@ -248,9 +314,12 @@ if __name__ == '__main__':
     if which('convert') is None:
         logger.error('No convert command, install ImageMagick')
         exit(MISSING_TOOLS)
+    use_poppler = not args.force_gs
     if which('pdftoppm') is None:
-        logger.error('No pdftoppm command, install poppler-utils')
-        exit(MISSING_TOOLS)
+        if which('gs') is None:
+            logger.error('No pdftoppm or ghostscript command, install poppler-utils or ghostscript')
+            exit(MISSING_TOOLS)
+        use_poppler = False
     if which('xdg-open') is None:
         logger.warning('No xdg-open command, install xdg-utils. Disabling the PDF viewer.')
         args.no_reader = False
@@ -306,8 +375,8 @@ if __name__ == '__main__':
         logger.debug('Temporal output dir %s' % output_dir)
         atexit.register(CleanOutputDir)
 
-    resolution = int(args.resolution[0])
-    if resolution < 30 and resolution > 400:
+    resolution = args.resolution
+    if resolution < 30 or resolution > 400:
         logger.warning('Resolution outside the recommended range [30,400]')
 
     layer_exclude = []
