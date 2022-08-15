@@ -1,7 +1,7 @@
 # kicad-diff
 
-This program generates a PDF file showing the changes between two KiCad PCB
-or SCH files.
+This program generates a PDF file showing the changes between two KiCad PCB or
+SCH files.
 
 PCBs are plotted into PDF files, one for each layer. Then ImageMagick is used
 to compare the layers and PNG files are generated. The PNGs are finally
@@ -12,8 +12,8 @@ removed as soon as the job is finished. You can cache the layers PDFs
 specifying a cache directory and keep the resulting diff images specifying an
 output directory.
 
-For SCHs the process is similar, but using KiAuto. Note that one schematic
-is compared at a time.
+For SCHs the process is similar, but using KiAuto. Note that one schematic is
+compared at a time.
 
 The default resolution for the images is 150 DPI. It can be increased for
 better images, at the cost of (exponetially) longer execution times. You can
@@ -26,16 +26,21 @@ resource' command.
 ## Dependencies
 
 In order to run the scripts you need:
+
 - Python 3.5 or newer
 - KiCad 5.1 or newer
-- Python3 wxWidgets (i.e. python3-wxgtk4.0). This is usually installed with KiCad.
-- ImageMagick tools (i.e. imagemagick Debian package). Used to manipulate images and create PDF files.
+- Python3 wxWidgets (i.e. python3-wxgtk4.0). This is usually installed with
+  KiCad.
+- ImageMagick tools (i.e. imagemagick Debian package). Used to manipulate
+  images and create PDF files.
 - pdftoppm tool (i.e. poppler-utils Debian package). Used to decode PDF files.
   - Alternative: Ghostscript (slower and worst results)
 - xdg-open tool (i.e. xdg-utils Debian package). Used to open the PDF viewer.
-- [KiAuto](https://github.com/INTI-CMNB/KiAuto/). Used to print the schematic in PDF format.
+- [KiAuto](https://github.com/INTI-CMNB/KiAuto/). Used to print the schematic
+  in PDF format.
 
-In a Debian/Ubuntu system you'll first need to add this [repo](https://set-soft.github.io/debian/) and then use:
+In a Debian/Ubuntu system you'll first need to add this
+[repo](https://set-soft.github.io/debian/) and then use:
 
 ```shell
 $ sudo apt-get install python3 kicad imagemagick poppler-utils xdg-utils kiauto`
@@ -73,16 +78,16 @@ find a Debian package in the releases section.
    extension with the *kicad-git-diff.py* script.
 3. The initialization script will create a list of layers to be excluded in
    the *.kicad-git-diff* file.\
-   Review this file and adjust it to your
-   needs. Lines starting with *#* will be ignored.
+   Review this file and adjust it to your needs.
+   Lines starting with *#* will be ignored.
 
 Once configured the tool will be used every time you do a diff using *git*.
 
 # Usage
 
-The *kicad-git-diff.py* is a plug-in for *git* so you just need to
-configure *git* and then it becomes transparent. If you need to create a diff
-between two files outside *git* you can use the *kicad-diff.py* script.
+The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure
+*git* and then it becomes transparent. If you need to create a diff between
+two files outside *git* you can use the *kicad-diff.py* script.
 
 You have to provide the name of the two PCBs to be compared. The additional
 command line options are:
@@ -136,16 +141,16 @@ Consult ImageMagick documentation in order to increase them.
 ## --old_file_hash
 
 The plotted PDF files for each layer are stored in the cache directory using a
-SHA1 of the PCB/SCH file as name for the directory. You can specify another hash
-here to identify the old PCB/SCH file.
+SHA1 of the PCB/SCH file as name for the directory. You can specify another
+hash here to identify the old PCB/SCH file.
 
 The *git* plug-in uses the hash provided by *git* instead of the SHA1 for the
 file.
 
 ## --new_file_hash
 
-This is the equivalent of the *--old_file_hash* option used for the new PCB/SCH
-file.
+This is the equivalent of the *--old_file_hash* option used for the new
+PCB/SCH file.
 
 ## --exclude
 
