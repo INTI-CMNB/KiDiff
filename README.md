@@ -13,7 +13,8 @@ specifying a cache directory and keep the resulting diff images specifying an
 output directory.
 
 For SCHs the process is similar, but using KiAuto. Note that one schematic is
-compared at a time.
+compared at a time. The `--all_pages` option allows comparing multiple pages,
+but both documents must have the same ammount of pages.
 
 The default resolution for the images is 150 DPI. It can be increased for
 better images, at the cost of (exponetially) longer execution times. You can
@@ -110,6 +111,11 @@ useful only to debug problems.
 ## --version
 
 Print the script version, copyright and license.
+
+## --all_pages
+
+Compare all pages for a schematic. Note that the tool doesn't cuurently support
+adding or removing sheets, both documents must have the same ammount of pages.
 
 ## --cache_dir
 

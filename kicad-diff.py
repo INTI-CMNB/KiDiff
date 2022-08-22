@@ -35,14 +35,15 @@ __status__ = 'beta'
 
 import argparse
 import atexit
+from glob import glob
 from hashlib import sha1
 import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath
-from os import makedirs, rename
+from os import makedirs, rename, remove
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
 import re
 from shutil import rmtree, which
-from subprocess import call, PIPE, run, STDOUT
+from subprocess import call, PIPE, run, STDOUT, CalledProcessError
 from sys import exit
 from tempfile import mkdtemp, NamedTemporaryFile
 import time
@@ -106,22 +107,25 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
             logger.debug('Using cached %s layer' % layer)
 
 
-def GenSCHImage(file, file_hash, hash_dir, file_no_ext):
-    name_pdf = '{}{}Schematic.pdf'.format(hash_dir, sep)
+def GenSCHImage(file, file_hash, hash_dir, file_no_ext, all):
+    name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_names[0])
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
         logger.info('Plotting the schematic')
-        cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf, file, '.']
+        cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf]
+        if all:
+            cmd.append('--all_pages')
+        cmd.extend([file, '.'])
         logger.debug('Executing: '+str(cmd))
         call(cmd)
         if not isfile(name_pdf):
             logger.error('Failed to plot %s' % name_pdf)
             exit(FAILED_TO_PLOT)
-        else:
-            logger.debug('Using cached schematic')
+    else:
+        logger.debug('Using cached schematic')
 
 
-def GenImages(file, file_hash):
+def GenImages(file, file_hash, all):
     # Check if we have a valid cache
     hash_dir = cache_dir+sep+file_hash
     logger.debug('Cache for {} will be {}'.format(file, hash_dir))
@@ -133,58 +137,73 @@ def GenImages(file, file_hash):
     if is_pcb:
         GenPCBImages(file, file_hash, hash_dir, file_no_ext)
     else:
-        GenSCHImage(file, file_hash, hash_dir, file_no_ext)
+        GenSCHImage(file, file_hash, hash_dir, file_no_ext, all)
 
 
-def cmd_pdf2miff(name, res, dest='miff:-'):
+def run_command(command):
+    logger.debug('Executing: '+str(command))
+    try:
+        run(command, check=True)
+    except CalledProcessError as e:
+        logger.debug('Running {} returned {}'.format(e.cmd, e.returncode))
+        if e.output:
+            logger.debug('- StdOut from command: '+e.output.decode())
+        if e.stderr:
+            logger.debug('- StdErr from command: '+e.stderr.decode())
+
+
+def pdf2png(base_name):
+    source = base_name+'.pdf'
+    dest1 = base_name+'.png'
+    destm = base_name+'-0.png'
+    if isfile(dest1):
+        logger.debug(source+" alredy converted to PNG")
+        return [dest1]
+    if isfile(destm):
+        logger.debug(source+" alredy converted to PNG")
+        return sorted(glob(base_name+'-*.png'))
     if use_poppler:
-        return 'cat {} | pdftoppm -r {} -gray - | convert - {}'.format(name, res, dest)
-    return ('convert -density {} {} -background white -alpha remove -alpha off '
-            '-threshold 50% -colorspace Gray -resample {} -depth 8 {}'.format(res*2, name, res, dest))
+        cmd = 'cat {} | pdftoppm -r {} -gray - | convert - {}'.format(source, resolution, dest1)
+    else:
+        cmd = ('convert -density {} {} -background white -alpha remove -alpha off -threshold 50% '
+               '-colorspace Gray -resample {} -depth 8 {}'.format(resolution*2, source, resolution, dest1))
+    run_command(['bash', '-c', cmd])
+    if isfile(dest1):
+        return [dest1]
+    if isfile(destm):
+        return sorted(glob(base_name+'-*.png'))
+    assert False
 
 
 def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
-    conv_old = cmd_pdf2miff(old_name, resolution)
-    conv_new = cmd_pdf2miff(new_name, resolution)
-    command = ['bash', '-c', '('+conv_old+' ; '+conv_new+') | ' +
+    command = ['bash', '-c', '( convert '+old_name+' miff:- ; convert '+new_name+' miff:- ) | ' +
                r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine '+diff_name]
-    logger.debug('Executing: '+str(command))
-    run(command, check=True)
+    run_command(command)
 
 
 def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
-    with NamedTemporaryFile(suffix='.png') as old_f:
-        # Convert the old file
-        cmd = ['bash', '-c', cmd_pdf2miff(old_name, resolution, old_f.name)]
-        logger.debug('Executing: '+str(cmd))
-        call(cmd)
-        with NamedTemporaryFile(suffix='.png') as new_f:
-            # Convert the new file
-            cmd = ['bash', '-c', cmd_pdf2miff(new_name, resolution, new_f.name)]
-            logger.debug('Executing: '+str(cmd))
-            call(cmd)
-            # Compare both
-            cmd = ['compare',
-                   # Tolerate 5 % error in color (configurable)
-                   '-fuzz', str(args.fuzz)+'%',
-                   # Count how many pixels differ
-                   '-metric', 'AE',
-                   new_f.name,
-                   old_f.name,
-                   '-colorspace', 'RGB',
-                   diff_name]
-            logger.debug('Executing: '+str(cmd))
-            res = run(cmd, stdout=PIPE, stderr=STDOUT)
-            errors = int(res.stdout.decode())
-            logger.debug('AE for {}: {}'.format(layer, errors))
-            if args.threshold and errors > args.threshold:
-                logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
-                exit(DIFF_TOO_BIG)
-            cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
-                   'text 10,'+font_size+" '"+name_layer+"'", diff_name]
-            logger.debug('Executing: '+str(cmd))
-            call(cmd)
+    # Compare both
+    cmd = ['compare',
+           # Tolerate 5 % error in color (configurable)
+           '-fuzz', str(args.fuzz)+'%',
+           # Count how many pixels differ
+           '-metric', 'AE',
+           new_name,
+           old_name,
+           '-colorspace', 'RGB',
+           diff_name]
+    logger.debug('Executing: '+str(cmd))
+    res = run(cmd, stdout=PIPE, stderr=STDOUT)
+    errors = int(res.stdout.decode())
+    logger.debug('AE for {}: {}'.format(layer, errors))
+    if args.threshold and errors > args.threshold:
+        logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
+        exit(DIFF_TOO_BIG)
+    cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
+           'text 10,'+font_size+" '"+name_layer+"'", diff_name]
+    logger.debug('Executing: '+str(cmd))
+    call(cmd)
 
 
 def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
@@ -197,18 +216,24 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
         layer = layer_names[i]
         name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
         layer_rep = layer.replace('.', '_')
-        old_name = '{}{}{}.pdf'.format(old_hash_dir, sep, layer_rep)
-        new_name = '{}{}{}.pdf'.format(new_hash_dir, sep, layer_rep)
-        diff_name = '{}{}{}-{}.png'.format(output_dir, sep, 'diff', layer_rep)
-        logger.info('Creating diff for %s' % layer)
-        if args.diff_mode == 'red_green':
-            create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
-        else:
-            create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
-        if not isfile(diff_name):
-            logger.error('Failed to create diff %s' % diff_name)
+        # Convert the PDFs to PNGs
+        old = pdf2png(old_hash_dir+sep+layer_rep)
+        new = pdf2png(new_hash_dir+sep+layer_rep)
+        if len(old) != len(new):
+            logger.error("Adding/removing sheets isn't supported yet")
             exit(FAILED_TO_DIFF)
-        files.append(diff_name)
+        for i, old_name in enumerate(old):
+            new_name = new[i]
+            diff_name = output_dir+sep+'diff-'+layer_rep+str(i)+'.png'
+            logger.info('Creating diff for '+(layer+'_'+str(i) if len(old) > 1 else layer))
+            if args.diff_mode == 'red_green':
+                create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
+            else:
+                create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
+            if not isfile(diff_name):
+                logger.error('Failed to create diff %s' % diff_name)
+                exit(FAILED_TO_DIFF)
+            files.append(diff_name)
     # Join all the JPGs into one PDF
     output_pdf = '{}{}diff.pdf'.format(output_dir, sep)
     files.append(output_pdf)
@@ -280,6 +305,7 @@ if __name__ == '__main__':
 
     parser.add_argument('old_file', help='Original file (PCB/SCH)')
     parser.add_argument('new_file', help='New file (PCB/SCH)')
+    parser.add_argument('--all_pages', help='Compare all the schematic pages', action='store_true')
     parser.add_argument('--cache_dir', nargs=1, help='Directory to cache images')
     parser.add_argument('--diff_mode', help='How to compute the image difference [red_green]',
                         choices=['red_green', 'stats'], default='red_green')
@@ -393,14 +419,14 @@ if __name__ == '__main__':
     is_pcb = old_file.endswith('.kicad_pcb')
 
     # Read the layer names from the file
-    layer_names = load_layer_names(old_file) if is_pcb else {0: 'Schematic'}
+    layer_names = load_layer_names(old_file) if is_pcb else {0: 'Schematic_all' if args.all_pages else 'Schematic'}
 
     if not is_pcb and which('eeschema_do') is None:
         logger.error('No eeschema_do command, install KiAuto')
         exit(MISSING_TOOLS)
 
-    GenImages(old_file, old_file_hash)
-    GenImages(new_file, new_file_hash)
+    GenImages(old_file, old_file_hash, args.all_pages)
+    GenImages(new_file, new_file_hash, args.all_pages)
 
     output_pdf = DiffImages(old_file, old_file_hash, new_file, new_file_hash)
 
