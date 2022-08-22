@@ -129,6 +129,10 @@ Two seconds after invoking the PDF viewer the output files are removed. If you
 want to keep them for later review, or two seconds isn't enough for your
 system, you can specify a directory to store the generated files.
 
+## --output_name
+
+Used to complement `--output_dir`. The default name is `diff.pdf`
+
 ## --resolution
 
 The PDF files are converted to bitmaps to be compared. The default resolution
