@@ -252,8 +252,9 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
         logger.debug('{} -> {}'.format(output_pdf, out_name))
         rename(output_pdf, out_name)
     # Remove the individual PNGs
-    for f in files[1:-1]:
-        remove(f)
+    if not args.keep_pngs:
+        for f in files[1:-1]:
+            remove(f)
     return out_name
 
 
@@ -324,8 +325,9 @@ if __name__ == '__main__':
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
     parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
                         default=5, metavar='[0-100]')
+    parser.add_argument('--keep_pngs', help="Don't remove the individual pages", action='store_true')
     parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
-    parser.add_argument('--no_reader', help='Don\'t open the PDF reader', action='store_false')
+    parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
     parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
     parser.add_argument('--output_dir', nargs=1, help='Directory for the output file')
     parser.add_argument('--output_name', help='Name of the output diff', type=str, default='diff.pdf')
