@@ -318,18 +318,18 @@ if __name__ == '__main__':
     parser.add_argument('old_file', help='Original file (PCB/SCH)')
     parser.add_argument('new_file', help='New file (PCB/SCH)')
     parser.add_argument('--all_pages', help='Compare all the schematic pages', action='store_true')
-    parser.add_argument('--cache_dir', nargs=1, help='Directory to cache images')
+    parser.add_argument('--cache_dir', help='Directory to cache images', type=str)
     parser.add_argument('--diff_mode', help='How to compute the image difference [red_green]',
                         choices=['red_green', 'stats'], default='red_green')
-    parser.add_argument('--exclude', nargs=1, help='Exclude layers in file (one layer per line)')
+    parser.add_argument('--exclude', help='Exclude layers in file (one layer per line)', type=str)
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
     parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
                         default=5, metavar='[0-100]')
     parser.add_argument('--keep_pngs', help="Don't remove the individual pages", action='store_true')
-    parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
+    parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
-    parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
-    parser.add_argument('--output_dir', nargs=1, help='Directory for the output file')
+    parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
+    parser.add_argument('--output_dir', help='Directory for the output file', type=str)
     parser.add_argument('--output_name', help='Name of the output diff', type=str, default='diff.pdf')
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
     parser.add_argument('--threshold', help='Error threshold for diff stats mode, 0 is no error [%(default)s]',
@@ -380,7 +380,7 @@ if __name__ == '__main__':
         logger.error('%s isn\'t a valid file name' % old_file)
         exit(OLD_INVALID)
     if args.old_file_hash:
-        old_file_hash = args.old_file_hash[0]
+        old_file_hash = args.old_file_hash
     else:
         old_file_hash = GetDigest(old_file)
     logger.debug('{} SHA1 is {}'.format(old_file, old_file_hash))
@@ -390,13 +390,13 @@ if __name__ == '__main__':
         logger.error('%s isn\'t a valid file name' % new_file)
         exit(NEW_INVALID)
     if args.new_file_hash:
-        new_file_hash = args.new_file_hash[0]
+        new_file_hash = args.new_file_hash
     else:
         new_file_hash = GetDigest(new_file)
     logger.debug('{} SHA1 is {}'.format(new_file, new_file_hash))
 
     if args.cache_dir:
-        cache_dir = args.cache_dir[0]
+        cache_dir = args.cache_dir
         if not isdir(cache_dir):
             makedirs(cache_dir, exist_ok=True)
         logger.debug('Cache dir: %s' % cache_dir)
@@ -406,7 +406,7 @@ if __name__ == '__main__':
         atexit.register(CleanCacheDir)
 
     if args.output_dir:
-        output_dir = args.output_dir[0]
+        output_dir = args.output_dir
         if not isdir(output_dir):
             makedirs(output_dir, exist_ok=True)
         logger.debug('Output dir: %s' % output_dir)
@@ -421,7 +421,7 @@ if __name__ == '__main__':
 
     layer_exclude = []
     if args.exclude:
-        exclude = args.exclude[0]
+        exclude = args.exclude
         if not isfile(exclude):
             logger.error('Invalid exclude file name ('+exclude+')')
             exit(WRONG_EXCLUDE)
