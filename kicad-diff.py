@@ -235,7 +235,11 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
                 exit(FAILED_TO_DIFF)
             files.append(diff_name)
     # Join all the JPGs into one PDF
-    output_pdf = '{}{}diff.pdf'.format(output_dir, sep)
+    out_name = output_dir+sep+args.output_name
+    output_pdf = out_name
+    # The name must end with .pdf
+    if not output_pdf.endswith('.pdf'):
+        output_pdf += '.pdf'
     files.append(output_pdf)
     logger.info('Joining all diffs into one PDF')
     logger.debug(files)
@@ -243,10 +247,14 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
     if not isfile(output_pdf):
         logger.error('Failed to join diffs into %s' % output_pdf)
         exit(FAILED_TO_JOIN)
+    # Fix the name
+    if not args.output_name.endswith('.pdf'):
+        logger.debug('{} -> {}'.format(output_pdf, out_name))
+        rename(output_pdf, out_name)
     # Remove the individual PNGs
     for f in files[1:-1]:
         remove(f)
-    return output_pdf
+    return out_name
 
 
 def GetDigest(file_path):
@@ -319,7 +327,8 @@ if __name__ == '__main__':
     parser.add_argument('--new_file_hash', nargs=1, help='Use this hash for NEW_FILE')
     parser.add_argument('--no_reader', help='Don\'t open the PDF reader', action='store_false')
     parser.add_argument('--old_file_hash', nargs=1, help='Use this hash for OLD_FILE')
-    parser.add_argument('--output_dir', nargs=1, help="Directory for the output files")
+    parser.add_argument('--output_dir', nargs=1, help='Directory for the output file')
+    parser.add_argument('--output_name', help='Name of the output diff', type=str, default='diff.pdf')
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
     parser.add_argument('--threshold', help='Error threshold for diff stats mode, 0 is no error [%(default)s]',
                         type=thre_type, default=0, metavar='[0-1000000]')
