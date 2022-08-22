@@ -243,6 +243,9 @@ def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
     if not isfile(output_pdf):
         logger.error('Failed to join diffs into %s' % output_pdf)
         exit(FAILED_TO_JOIN)
+    # Remove the individual PNGs
+    for f in files[1:-1]:
+        remove(f)
     return output_pdf
 
 
