@@ -1,4 +1,4 @@
-kicad-pcb-diff (2.2.0-1) stable; urgency=medium
+kidiff (2.2.0-1) stable; urgency=medium
 
   * Added multi-page schematic support
   * Added more control for the output name and generated files

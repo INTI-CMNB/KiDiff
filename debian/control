@@ -1,4 +1,4 @@
-Source: kicad-pcb-diff
+Source: kidiff
 Section: electronics
 Priority: optional
 Maintainer: Salvador Eduardo Tropea <salvador@inti.gob.ar>
@@ -7,7 +7,7 @@ Standards-Version: 4.1.4
 Homepage: https://github.com/INTI-CMNB/kicad_pcb-diff
 X-Python3-Version: >= 3.2
 
-Package: kicad-pcb-diff
+Package: kidiff
 Architecture: all
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils | ghostscript, xdg-utils, kiauto
@@ -15,6 +15,11 @@ Recommends: git
 Description: KiCad PCB/SCH diff tool
  This package provides a tool to compute the difference between two
  PCB/SCH files created with KiCad.
+ .
+ It generates a PDF file with images showing the added/removed stuff.
+ .
+ Is oriented for command line usage and isn't interactive, i.e. you
+ must indicate the name of the files.
  .
  It also includes a plug-in for git.
 
