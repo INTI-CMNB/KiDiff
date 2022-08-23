@@ -1,4 +1,4 @@
-# kicad-diff
+# KiDiff (kicad-diff or kicad_pcb-diff)
 
 This program generates a PDF file showing the changes between two KiCad PCB or
 SCH files.
