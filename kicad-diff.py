@@ -49,8 +49,10 @@ from tempfile import mkdtemp, NamedTemporaryFile
 import time
 
 # Exit error codes
-OLD_INVALID = 1
-NEW_INVALID = 2
+# Fixed values
+INTERNAL_ERROR = 1
+ARGS_ERROR = 2
+# Our values
 FAILED_TO_PLOT = 3
 MISSING_TOOLS = 4
 FAILED_TO_CONVERT = 5
@@ -59,6 +61,8 @@ FAILED_TO_JOIN = 7
 WRONG_EXCLUDE = 8
 WRONG_ARGUMENT = 9
 DIFF_TOO_BIG = 10
+OLD_INVALID = 11
+NEW_INVALID = 12
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
 use_poppler = True
