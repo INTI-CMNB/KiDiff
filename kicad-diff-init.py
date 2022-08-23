@@ -13,9 +13,10 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020, INTI'
 __credits__ = ['Salvador E. Tropea']
 __license__ = 'GPL 2.0'
-__version__ = '2.1.0'
+__version__ = '2.2.0'
 __email__ = 'stopea@inti.gob.ar'
 __status__ = 'beta'
+__url__ = 'https://github.com/INTI-CMNB/KiDiff/'
 
 import argparse
 import logging
