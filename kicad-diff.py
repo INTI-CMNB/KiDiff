@@ -46,7 +46,7 @@ import re
 from shutil import rmtree, which
 from subprocess import call, PIPE, run, STDOUT, CalledProcessError
 from sys import exit
-from tempfile import mkdtemp, NamedTemporaryFile
+from tempfile import mkdtemp
 import time
 
 # Exit error codes
@@ -211,7 +211,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     call(cmd)
 
 
-def DiffImages(old_file, old_file_hash, new_file, new_file_hash):
+def DiffImages(old_file_hash, new_file_hash):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
     files = ['convert']
@@ -314,7 +314,7 @@ def thre_type(astr, min=0, max=1e6):
     if min <= value <= max:
         return value
     else:
-        raise argparse.ArgumentTypeError('value not in range %s-%s'%(min, max))
+        raise argparse.ArgumentTypeError('value not in range %s-%s' % (min, max))
 
 
 if __name__ == '__main__':
@@ -328,7 +328,7 @@ if __name__ == '__main__':
                         choices=['red_green', 'stats'], default='red_green')
     parser.add_argument('--exclude', help='Exclude layers in file (one layer per line)', type=str)
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
-    parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0,101),
+    parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0, 101),
                         default=5, metavar='[0-100]')
     parser.add_argument('--keep_pngs', help="Don't remove the individual pages", action='store_true')
     parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
@@ -454,8 +454,8 @@ if __name__ == '__main__':
         exit(0)
     GenImages(new_file, new_file_hash, args.all_pages)
 
-    output_pdf = DiffImages(old_file, old_file_hash, new_file, new_file_hash)
+    output_pdf = DiffImages(old_file_hash, new_file_hash)
 
     if args.no_reader:
         call(['xdg-open', output_pdf])
-        time.sleep(2)
+        time.sleep(5)

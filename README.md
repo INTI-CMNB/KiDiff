@@ -125,8 +125,8 @@ PDFs.
 
 ## --output_dir
 
-Two seconds after invoking the PDF viewer the output files are removed. If you
-want to keep them for later review, or two seconds isn't enough for your
+Five seconds after invoking the PDF viewer the output files are removed. If you
+want to keep them for later review, or five seconds isn't enough for your
 system, you can specify a directory to store the generated files.
 
 Note: individual PNGs are always removed, consult `--keep_pngs`

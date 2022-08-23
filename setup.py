@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 from setuptools import setup, find_packages
-import importlib  
+import importlib
 kidiff = importlib.import_module("kicad-diff")
 
 # Use the README.md as a long description.
