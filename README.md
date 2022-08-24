@@ -185,6 +185,10 @@ Edge.Cuts
 Margin
 ```
 
+You can also use the KiCad internal layer ID number. Note that currently
+when using KiCad 6 the name of the layer is the default KiCad name, not the
+name defined by the user.
+
 Note that when using the *git* plug-in the script looks for a file named
 *.kicad-git-diff* at the root of the repo.
 

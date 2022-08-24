@@ -296,8 +296,9 @@ def load_layer_names(old_file):
                         lname = lname[1:-1]
                     lnum = res[0]
                     logger.debug(lname+'->'+lnum)
-                    if lname not in layer_exclude:
-                        layer_names[int(lnum)] = lname
+                    ilnum = int(lnum)
+                    if lname not in layer_exclude and ilnum not in layer_exclude:
+                        layer_names[ilnum] = lname
                     else:
                         logger.debug('Excluding layer '+res[1])
                 else:
@@ -315,6 +316,15 @@ def thre_type(astr, min=0, max=1e6):
         return value
     else:
         raise argparse.ArgumentTypeError('value not in range %s-%s' % (min, max))
+
+
+def get_layer(line):
+    line = line.rstrip()
+    try:
+        line = int(line)
+    except ValueError:
+        pass
+    return line
 
 
 if __name__ == '__main__':
@@ -436,7 +446,7 @@ if __name__ == '__main__':
             logger.error('Invalid exclude file name ('+exclude+')')
             exit(WRONG_EXCLUDE)
         with open(exclude) as f:
-            layer_exclude = [line.rstrip() for line in f]
+            layer_exclude = [get_layer(line) for line in f]
         logger.debug('%d layers to be excluded' % len(layer_exclude))
 
     # Are we using PCBs or SCHs?

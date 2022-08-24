@@ -8,9 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.2.0] - 2022-08-??
 ### Added
-- Multi-page schematic support
-- More control for the output name and generated files
-- Option to just populate the cache
+- Multi-page schematic support.
+- More control for the output name and generated files.
+- Option to just populate the cache.
+- Support for layer numbers in the exclude file.
 
 ### Changed
 - Error codes for old/new file invalid.
