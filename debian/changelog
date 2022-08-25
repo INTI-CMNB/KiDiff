@@ -1,3 +1,9 @@
+kidiff (2.3.1-1) stable; urgency=medium
+
+  * Fixed KiCad 5 problems with inner layers (undefined names)
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 25 Aug 2022 13:36:23 -0300
+
 kidiff (2.3.0-1) stable; urgency=medium
 
   * Added support for adding/removing PCB layers
