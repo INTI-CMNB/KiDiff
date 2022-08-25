@@ -328,7 +328,7 @@ def id2def_name(id):
     id = int(id)
     if hasattr(pcbnew, 'LayerName'):
         return pcbnew.LayerName(id)
-    return DEFAULT_LAYER_NAMES.get(id)
+    return DEFAULT_LAYER_NAMES[id]
 
 
 def load_layer_names(pcb_file):
@@ -410,6 +410,11 @@ if __name__ == '__main__':
                         __copyright__+' - License: '+__license__)
 
     args = parser.parse_args()
+
+    # Fill the names for the inner layers
+    for i in range(1, 30):
+        name = 'In'+str(i)+'.Cu'
+        DEFAULT_LAYER_NAMES[pcbnew.In1_Cu+i-1] = name
 
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
