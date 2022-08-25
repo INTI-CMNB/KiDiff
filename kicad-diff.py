@@ -69,7 +69,7 @@ is_pcb = True
 use_poppler = True
 
 
-def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
+def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
     # Setup the KiCad plotter
     board = LoadBoard(file)
     pctl = PLOT_CONTROLLER(board)
@@ -112,7 +112,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext):
             logger.debug('Using cached %s layer' % layer)
 
 
-def GenSCHImage(file, file_hash, hash_dir, file_no_ext, all):
+def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
     name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_names[0])
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
@@ -139,10 +139,14 @@ def GenImages(file, file_hash, all):
 
     file_no_ext = splitext(basename(file))[0]
 
+    # Read the layer names from the file
+    layer_names = load_layer_names(file) if is_pcb else {0: 'Schematic_all' if args.all_pages else 'Schematic'}
+
     if is_pcb:
-        GenPCBImages(file, file_hash, hash_dir, file_no_ext)
+        GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names)
     else:
-        GenSCHImage(file, file_hash, hash_dir, file_no_ext, all)
+        GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all)
+    return layer_names
 
 
 def run_command(command):
@@ -157,8 +161,8 @@ def run_command(command):
             logger.debug('- StdErr from command: '+e.stderr.decode())
 
 
-def pdf2png(base_name):
-    source = base_name+'.pdf'
+def pdf2png(base_name, blank=False, ref=None):
+    source = base_name+'.pdf' if not blank else ref+'.pdf'
     dest1 = base_name+'.png'
     destm = base_name+'-0.png'
     if isfile(dest1):
@@ -173,6 +177,11 @@ def pdf2png(base_name):
         cmd = ('convert -density {} {} -background white -alpha remove -alpha off -threshold 50% '
                '-colorspace Gray -resample {} -depth 8 {}'.format(resolution*2, source, resolution, dest1))
     run_command(['bash', '-c', cmd])
+    if blank:
+        # Create a blank file
+        logger.debug('Blanking '+dest1)
+        cmd = ('convert {} -background white -threshold 100% -negate -colorspace Gray {}'.format(dest1, dest1))
+        run_command(['bash', '-c', cmd])
     if isfile(dest1):
         return [dest1]
     if isfile(destm):
@@ -211,19 +220,28 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     call(cmd)
 
 
-def DiffImages(old_file_hash, new_file_hash):
+def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
     files = ['convert']
     # Compute the difference between images for each layer, store JPGs
     font_size = str(int(resolution/5))
-    for i in sorted(layer_names.keys()):
-        layer = layer_names[i]
+    all_layers = {}
+    all_layers.update(layers_old)
+    all_layers.update(layers_new)
+    for i in sorted(all_layers.keys()):
+        layer = all_layers[i]
         name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
         layer_rep = layer.replace('.', '_')
         # Convert the PDFs to PNGs
-        old = pdf2png(old_hash_dir+sep+layer_rep)
-        new = pdf2png(new_hash_dir+sep+layer_rep)
+        old_file = old_hash_dir+sep+layer_rep
+        new_file = new_hash_dir+sep+layer_rep
+        old = pdf2png(old_file, i not in layers_old, new_file)
+        new = pdf2png(new_file, i not in layers_new, old_file)
+        if i not in layers_old:
+            name_layer += ' only in new file'
+        if i not in layers_new:
+            name_layer += ' only in old file'
         if len(old) != len(new):
             logger.error("Adding/removing sheets isn't supported yet")
             exit(FAILED_TO_DIFF)
@@ -452,19 +470,16 @@ if __name__ == '__main__':
     # Are we using PCBs or SCHs?
     is_pcb = old_file.endswith('.kicad_pcb')
 
-    # Read the layer names from the file
-    layer_names = load_layer_names(old_file) if is_pcb else {0: 'Schematic_all' if args.all_pages else 'Schematic'}
-
     if not is_pcb and which('eeschema_do') is None:
         logger.error('No eeschema_do command, install KiAuto')
         exit(MISSING_TOOLS)
 
-    GenImages(old_file, old_file_hash, args.all_pages)
+    layers_old = GenImages(old_file, old_file_hash, args.all_pages)
     if args.only_cache:
         exit(0)
-    GenImages(new_file, new_file_hash, args.all_pages)
+    layers_new = GenImages(new_file, new_file_hash, args.all_pages)
 
-    output_pdf = DiffImages(old_file_hash, new_file_hash)
+    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new)
 
     if args.no_reader:
         call(['xdg-open', output_pdf])
