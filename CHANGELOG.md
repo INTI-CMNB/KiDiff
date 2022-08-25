@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Support for adding/removing PCB layers
+- Option to specify the layers to use, instead of excluded
 
 ### Changed
 - The red/green colors to match text mode diff tools

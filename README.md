@@ -90,8 +90,9 @@ The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure
 *git* and then it becomes transparent. If you need to create a diff between
 two files outside *git* you can use the *kicad-diff.py* script.
 
-You have to provide the name of the two PCBs to be compared. The additional
-command line options are:
+You have to provide the name of the two PCB/SCHs to be compared. The first is
+the old one, the reference, and the second is the new, the one you want to
+compare. The additional command line options are:
 
 ## --help
 
@@ -144,6 +145,8 @@ Note that when using the *git* plug-in the script looks for a file named
 Using this you can reduce the time wasted computing diffs for empty or useless
 layers.
 
+See also `--layers`
+
 ## --force_gs
 
 KiDiff uses poppler utils if they are available. When they aren't KiDiff can
@@ -160,6 +163,18 @@ the colors. Enlarge it if you want to ignore bigger differences in the colors.
 
 Don't remove the individual PNGs. Complements `--output_dir`.
 They are usually removed as soon as we get the output PDF.
+
+## --layers
+
+Specifies the name of a file containing a list of layers to be included.
+This option works similar to `--exclude` but we process only the layers
+indicated here.
+
+Important: when this list is only composed by layer numbers KiDiff skips any
+check and uses this list of layers, even if they aren't defined in any of the
+specified PCBs.
+
+`--layers` and `--exclude` are mutually exclusive.
 
 ## --new_file_hash
 

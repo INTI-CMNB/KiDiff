@@ -42,6 +42,7 @@ import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath
 from os import makedirs, rename, remove
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
+import pcbnew
 import re
 from shutil import rmtree, which
 from subprocess import call, PIPE, run, STDOUT, CalledProcessError
@@ -67,6 +68,29 @@ NEW_INVALID = 12
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
 use_poppler = True
+all_numeric = True
+DEFAULT_LAYER_NAMES = {
+    pcbnew.F_Cu: 'F.Cu',
+    pcbnew.B_Cu: 'B.Cu',
+    pcbnew.F_Adhes: 'F.Adhes',
+    pcbnew.B_Adhes: 'B.Adhes',
+    pcbnew.F_Paste: 'F.Paste',
+    pcbnew.B_Paste: 'B.Paste',
+    pcbnew.F_SilkS: 'F.SilkS',
+    pcbnew.B_SilkS: 'B.SilkS',
+    pcbnew.F_Mask: 'F.Mask',
+    pcbnew.B_Mask: 'B.Mask',
+    pcbnew.Dwgs_User: 'Dwgs.User',
+    pcbnew.Cmts_User: 'Cmts.User',
+    pcbnew.Eco1_User: 'Eco1.User',
+    pcbnew.Eco2_User: 'Eco2.User',
+    pcbnew.Edge_Cuts: 'Edge.Cuts',
+    pcbnew.Margin: 'Margin',
+    pcbnew.F_CrtYd: 'F.CrtYd',
+    pcbnew.B_CrtYd: 'B.CrtYd',
+    pcbnew.F_Fab: 'F.Fab',
+    pcbnew.B_Fab: 'B.Fab',
+}
 
 
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
@@ -300,9 +324,20 @@ def CleanCacheDir():
     rmtree(cache_dir)
 
 
-def load_layer_names(old_file):
+def id2def_name(id):
+    id = int(id)
+    if hasattr(pcbnew, 'LayerName'):
+        return pcbnew.LayerName(id)
+    return DEFAULT_LAYER_NAMES.get(id)
+
+
+def load_layer_names(pcb_file):
     layer_names = {}
-    with open(old_file, "r") as file_file:
+    if layer_list and not is_exclude and all_numeric:
+        # Use this list, forget about what the PCB says
+        layer_names = {int(la): id2def_name(la) for la in layer_list}
+        return layer_names
+    with open(pcb_file, "r") as file_file:
         collect_layers = False
         for line in file_file:
             if collect_layers:
@@ -315,7 +350,7 @@ def load_layer_names(old_file):
                     lnum = res[0]
                     logger.debug(lname+'->'+lnum)
                     ilnum = int(lnum)
-                    if lname not in layer_exclude and ilnum not in layer_exclude:
+                    if (lname in layer_list or ilnum in layer_list) ^ is_exclude:
                         layer_names[ilnum] = lname
                     else:
                         logger.debug('Excluding layer '+res[1])
@@ -341,7 +376,7 @@ def get_layer(line):
     try:
         line = int(line)
     except ValueError:
-        pass
+        all_numeric = False
     return line
 
 
@@ -354,11 +389,13 @@ if __name__ == '__main__':
     parser.add_argument('--cache_dir', help='Directory to cache images', type=str)
     parser.add_argument('--diff_mode', help='How to compute the image difference [red_green]',
                         choices=['red_green', 'stats'], default='red_green')
-    parser.add_argument('--exclude', help='Exclude layers in file (one layer per line)', type=str)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--exclude', help='Exclude layers in file (one layer per line)', type=str)
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
     parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0, 101),
                         default=5, metavar='[0-100]')
     parser.add_argument('--keep_pngs', help="Don't remove the individual pages", action='store_true')
+    group.add_argument('--layers', help='Process layers in file (one layer per line)', type=str)
     parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
     parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
@@ -457,15 +494,17 @@ if __name__ == '__main__':
     if resolution < 30 or resolution > 400:
         logger.warning('Resolution outside the recommended range [30,400]')
 
-    layer_exclude = []
-    if args.exclude:
-        exclude = args.exclude
-        if not isfile(exclude):
-            logger.error('Invalid exclude file name ('+exclude+')')
+    layer_list = []
+    is_exclude = True
+    layer_file = args.exclude or args.layers
+    if layer_file:
+        is_exclude = args.exclude is not None
+        if not isfile(layer_file):
+            logger.error('Invalid file name ('+layer_file+')')
             exit(WRONG_EXCLUDE)
-        with open(exclude) as f:
-            layer_exclude = [get_layer(line) for line in f]
-        logger.debug('%d layers to be excluded' % len(layer_exclude))
+        with open(layer_file) as f:
+            layer_list = [get_layer(line) for line in f]
+        logger.debug('layers to be {}: {}'.format('excluded' if is_exclude else 'included', layer_list))
 
     # Are we using PCBs or SCHs?
     is_pcb = old_file.endswith('.kicad_pcb')
