@@ -182,7 +182,7 @@ def pdf2png(base_name):
 
 def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
-    command = ['bash', '-c', '( convert '+old_name+' miff:- ; convert '+new_name+' miff:- ) | ' +
+    command = ['bash', '-c', '( convert '+new_name+' miff:- ; convert '+old_name+' miff:- ) | ' +
                r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine '+diff_name]
     run_command(command)
 
