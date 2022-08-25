@@ -93,28 +93,13 @@ two files outside *git* you can use the *kicad-diff.py* script.
 You have to provide the name of the two PCBs to be compared. The additional
 command line options are:
 
-## -h
-
-Shows a very brief list of the available options.
-
 ## --help
 
-Shows a more detailed list of the available options.
-
-## -v/--verbose
-
-Increases the level of verbosity. The default is a quite, specifying one level
-(*-v*) you'll get information messages about what's going on. If you increase
-the level to two (*-vv*) you'll get very detailed information, most probably
-useful only to debug problems.
-
-## --version
-
-Print the script version, copyright and license.
+Shows a detailed list of the available options.
 
 ## --all_pages
 
-Compare all pages for a schematic. Note that the tool doesn't cuurently support
+Compare all pages for a schematic. Note that the tool doesn't currently support
 adding or removing sheets, both documents must have the same ammount of pages.
 
 ## --cache_dir
@@ -123,51 +108,15 @@ The PCB/SCH files are plotted to PDF files. One PDF file for layer. To avoid
 plotting them over and over you can specify a cache directory to store the
 PDFs.
 
-## --output_dir
+## --diff_mode
 
-Five seconds after invoking the PDF viewer the output files are removed. If you
-want to keep them for later review, or five seconds isn't enough for your
-system, you can specify a directory to store the generated files.
-
-Note: individual PNGs are always removed, consult `--keep_pngs`
-
-## --output_name
-
-Used to complement `--output_dir`. The default name is `diff.pdf`
-
-## --keep_pngs
-
-Don't remove the individual PNGs. Complements `--output_dir`.
-They are usually removed as soon as we get the output PDF.
-
-## --resolution
-
-The PDF files are converted to bitmaps to be compared. The default resolution
-for these bitmaps is 150 DPIs. This is a compromise between speed and
-legibility. For faster compares you can use a smaller resolution. For detailed
-comparison you can use a higher resolution. Be careful because the time is
-increased exponentially. You can also run out of resources. In particular
-ImageMagick defines some limits to the disk used for operations. These limits
-can be very low for default installations. You can consult the limits using
-the following command:
-
-`identify -list resource`
-
-Consult ImageMagick documentation in order to increase them.
-
-## --old_file_hash
-
-The plotted PDF files for each layer are stored in the cache directory using a
-SHA1 of the PCB/SCH file as name for the directory. You can specify another
-hash here to identify the old PCB/SCH file.
-
-The *git* plug-in uses the hash provided by *git* instead of the SHA1 for the
-file.
-
-## --new_file_hash
-
-This is the equivalent of the *--old_file_hash* option used for the new
-PCB/SCH file.
+Selects the mechanism used to represent the differences:
+- **red_green** this is the default mode. Here we try to mimic the colored text
+  mode diff tools. Things added to the *old* file are reprsented in green and
+  things removed in red.
+- **stats** in this mode all difference are represented in red. We compute the
+  ammount of pixels that are different, you can use this value to determine if
+  the changes are significant. See the `--fuzz` and `--threshold` options.
 
 ## --exclude
 
@@ -195,12 +144,87 @@ Note that when using the *git* plug-in the script looks for a file named
 Using this you can reduce the time wasted computing diffs for empty or useless
 layers.
 
+## --force_gs
+
+KiDiff uses poppler utils if they are available. When they aren't KiDiff can
+use Ghostscript. The results using poppler are better and the process is
+faster, but you can choose to use Ghostscript using this option.
+
+## --fuzz
+
+When comparing using the *stats* mode (see `--diff_mode`) this option controls
+how strict is the color comparison. The default is to tolerate 5 % of error in
+the colors. Enlarge it if you want to ignore bigger differences in the colors.
+
+## --keep_pngs
+
+Don't remove the individual PNGs. Complements `--output_dir`.
+They are usually removed as soon as we get the output PDF.
+
+## --new_file_hash
+
+This is the equivalent of the *--old_file_hash* option used for the new
+PCB/SCH file.
+
 ## --no_reader
 
 Use it to avoid invoking the default PDF viewer. Note that you should also
 provide an output directory using *--output_dir*.
 
 The default PDF reader is invoked using *xdg-open*
+
+## --old_file_hash
+
+The plotted PDF files for each layer are stored in the cache directory using a
+SHA1 of the PCB/SCH file as name for the directory. You can specify another
+hash here to identify the old PCB/SCH file.
+
+The *git* plug-in uses the hash provided by *git* instead of the SHA1 for the
+file.
+
+## --output_dir
+
+Five seconds after invoking the PDF viewer the output files are removed. If you
+want to keep them for later review, or five seconds isn't enough for your
+system, you can specify a directory to store the generated files.
+
+Note: individual PNGs are always removed, consult `--keep_pngs`
+
+## --output_name
+
+Used to complement `--output_dir`. The default name is `diff.pdf`
+
+## --resolution
+
+The PDF files are converted to bitmaps to be compared. The default resolution
+for these bitmaps is 150 DPIs. This is a compromise between speed and
+legibility. For faster compares you can use a smaller resolution. For detailed
+comparison you can use a higher resolution. Be careful because the time is
+increased exponentially. You can also run out of resources. In particular
+ImageMagick defines some limits to the disk used for operations. These limits
+can be very low for default installations. You can consult the limits using
+the following command:
+
+`identify -list resource`
+
+Consult ImageMagick documentation in order to increase them.
+
+## --threshold
+
+In the *stats* mode this option can make KiDiff to return an error value if the
+difference is bigger than the specified threshold. Indicating 0 means that we
+don't look for errors, KiDiff always returns 0.
+
+## -v/--verbose
+
+Increases the level of verbosity. The default is a quite mode, specifying one
+level (*-v*) you'll get information messages about what's going on. If you
+increase the level to two (*-vv*) you'll get very detailed information, most
+probably useful only to debug problems.
+
+## --version
+
+Print the script version, copyright and license.
 
 # Credits and notes
 
