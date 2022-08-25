@@ -1,3 +1,10 @@
+kidiff (2.3.0-1) stable; urgency=medium
+
+  * Added support for adding/removing PCB layers
+  * Changed the red/green colors to match text mode diff tools
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 25 Aug 2022 08:33:51 -0300
+
 kidiff (2.2.0-1) stable; urgency=medium
 
   * Added multi-page schematic support
