@@ -44,7 +44,7 @@ from os import makedirs, rename, remove
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
 import pcbnew
 import re
-from shutil import rmtree, which
+from shutil import rmtree, which, copy2
 from subprocess import call, PIPE, run, STDOUT, CalledProcessError
 from sys import exit
 from tempfile import mkdtemp
@@ -136,7 +136,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
             logger.debug('Using cached %s layer' % layer)
 
 
-def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
+def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
     name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_names[0])
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
@@ -152,6 +152,50 @@ def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
             exit(FAILED_TO_PLOT)
     else:
         logger.debug('Using cached schematic')
+
+
+def svg2png(svg_file, png_file):
+    cmd = ['rsvg-convert', '-d', str(resolution), '-p', str(resolution), '-f', 'png', '-b', 'white', '-o', png_file, svg_file]
+    run_command(cmd)
+
+
+def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
+    """ Plot the schematic using SVG files so we get separated files with correct names.
+        The convert all the pages to PDFs.
+        This function is used only when all pages are requested """
+    base_dir_and_name = hash_dir+sep+file_no_ext
+    files = glob(base_dir_and_name+'*.png')
+    # Create the PNG, or use a cached version
+    if len(files) < 2:
+        # Note: If this is more than one page we should have at least 2 files.
+        svgs = glob(base_dir_and_name+'*.svg')
+        if len(svgs) < 2:
+            logger.info('Plotting the schematic')
+            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--no_frame', '--all_pages', file, hash_dir]
+            run_command(cmd)
+        files = glob(base_dir_and_name+'*.svg')
+        if not files:
+            logger.error('Failed to plot %s' % file)
+            exit(FAILED_TO_PLOT)
+        # Convert the files to PNG
+        for f in files:
+            svg2png(f, f.replace('.svg', '.png'))
+        files = glob(base_dir_and_name+'*.png')
+    else:
+        logger.debug('Using cached schematic')
+    # Remove the "Schematic_all" entry
+    del layer_names[0]
+    # We don't have unique ID layers, so we use a different mechanism
+    # This is just a list of sheet names, inside a hash
+    for c, f in enumerate(sorted(files)):
+        layer_names[splitext(basename(f))[0]] = c
+
+
+def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
+    if svg_mode:
+        GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names)
+    else:
+        GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all)
 
 
 def GenImages(file, file_hash, all):
@@ -190,21 +234,26 @@ def pdf2png(base_name, blank=False, ref=None):
     dest1 = base_name+'.png'
     destm = base_name+'-0.png'
     if isfile(dest1):
-        logger.debug(source+" alredy converted to PNG")
+        logger.debug(source+" already converted to PNG")
         return [dest1]
     if isfile(destm):
-        logger.debug(source+" alredy converted to PNG")
+        logger.debug(source+" already converted to PNG")
         return sorted(glob(base_name+'-*.png'))
-    if use_poppler:
-        cmd = 'cat {} | pdftoppm -r {} -gray - | convert - {}'.format(source, resolution, dest1)
+    if isfile(source):
+        if use_poppler:
+            cmd = 'cat "{}" | pdftoppm -r {} -gray - | convert - "{}"'.format(source, resolution, dest1)
+        else:
+            cmd = ('convert -density {} "{}" -background white -alpha remove -alpha off -threshold 50% '
+                   '-colorspace Gray -resample {} -depth 8 "{}"'.format(resolution*2, source, resolution, dest1))
+        run_command(['bash', '-c', cmd])
     else:
-        cmd = ('convert -density {} {} -background white -alpha remove -alpha off -threshold 50% '
-               '-colorspace Gray -resample {} -depth 8 {}'.format(resolution*2, source, resolution, dest1))
-    run_command(['bash', '-c', cmd])
+        png = ref+'.png'
+        assert isfile(png)
+        copy2(png, dest1)
     if blank:
         # Create a blank file
         logger.debug('Blanking '+dest1)
-        cmd = ('convert {} -background white -threshold 100% -negate -colorspace Gray {}'.format(dest1, dest1))
+        cmd = ('convert "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, dest1))
         run_command(['bash', '-c', cmd])
     if isfile(dest1):
         return [dest1]
@@ -215,8 +264,8 @@ def pdf2png(base_name, blank=False, ref=None):
 
 def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
-    command = ['bash', '-c', '( convert '+new_name+' miff:- ; convert '+old_name+' miff:- ) | ' +
-               r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine '+diff_name]
+    command = ['bash', '-c', '( convert "'+new_name+'" miff:- ; convert "'+old_name+'" miff:- ) | ' +
+               r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
 
 
@@ -254,9 +303,15 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     all_layers.update(layers_old)
     all_layers.update(layers_new)
     for i in sorted(all_layers.keys()):
-        layer = all_layers[i]
-        name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
-        layer_rep = layer.replace('.', '_')
+        if svg_mode:
+            # Multisheet schematic
+            layer_rep = layer = i
+            # Try to reconstruct the sheet path (fails if the names contains -)
+            name_layer = i.replace('-', '/')
+        else:
+            layer = all_layers[i]
+            name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
+            layer_rep = layer.replace('.', '_')
         # Convert the PDFs to PNGs
         old_file = old_hash_dir+sep+layer_rep
         new_file = new_hash_dir+sep+layer_rep
@@ -267,7 +322,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
         if i not in layers_new:
             name_layer += ' only in old file'
         if len(old) != len(new):
-            logger.error("Adding/removing sheets isn't supported yet")
+            logger.error("Adding/removing sheets isn't supported without `rsvg-convert`")
             exit(FAILED_TO_DIFF)
         for i, old_name in enumerate(old):
             new_name = new[i]
@@ -518,8 +573,17 @@ if __name__ == '__main__':
         logger.error('No eeschema_do command, install KiAuto')
         exit(MISSING_TOOLS)
 
+    # The SVG mode allows comparing individual pages in a way that we can detect added/removed pages
+    svg_mode = False
+    if not is_pcb and args.all_pages:
+        svg_mode = which('rsvg-convert') is not None
+        if not svg_mode:
+            logger.warning("The `rsvg-convert` tool isn't installed:")
+            logger.warning("- If the number of pages changed the process will be aborted.")
+
     layers_old = GenImages(old_file, old_file_hash, args.all_pages)
     if args.only_cache:
+        logger.info('{} SHA1 is {}'.format(old_file, old_file_hash))
         exit(0)
     layers_new = GenImages(new_file, new_file_hash, args.all_pages)
 

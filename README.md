@@ -13,8 +13,11 @@ specifying a cache directory and keep the resulting diff images specifying an
 output directory.
 
 For SCHs the process is similar, but using KiAuto. Note that one schematic is
-compared at a time. The `--all_pages` option allows comparing multiple pages,
-but both documents must have the same ammount of pages.
+compared at a time. The `--all_pages` option allows comparing multiple pages.
+In this case adding or removing pages is only supported when the
+`rsvg-convert` tool is available. Also note that this can't be done by the
+git plug-in because git extracts only the file you want to compare.
+Consult the advanced use explanation.
 
 The default resolution for the images is 150 DPI. It can be increased for
 better images, at the cost of (exponetially) longer execution times. You can
@@ -36,6 +39,8 @@ In order to run the scripts you need:
   images and create PDF files.
 - pdftoppm tool (i.e. poppler-utils Debian package). Used to decode PDF files.
   - Alternative: Ghostscript (slower and worst results)
+- rsvg-convert tool (i.e. librsvg2-bin Debian package). Needed to compare
+  schematics with multiple pages. Converts SVG files to PNGs.
 - xdg-open tool (i.e. xdg-utils Debian package). Used to open the PDF viewer.
 - [KiAuto](https://github.com/INTI-CMNB/KiAuto/). Used to print the schematic
   in PDF format.
@@ -240,6 +245,18 @@ probably useful only to debug problems.
 ## --version
 
 Print the script version, copyright and license.
+
+# Advanced use
+
+`kicad-diff.py` can be run using the `--only_cache` option. In this mode the
+*new_file* argument can be the same as the *old_file* argument. This operation
+is used to store the images, but skip the comparison. In order to work you
+must specify a valid `cache_dir`. You should also take note of the hash used
+by `kicad-diff.py`, or just provide one using the `--old_file_hash`.
+
+You can then compare two files using the cached images, you just need to
+provide the hashes you want to compare. The *old_file* and *new_file* won't
+be used.
 
 # Credits and notes
 
