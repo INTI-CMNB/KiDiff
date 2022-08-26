@@ -10,7 +10,7 @@ X-Python3-Version: >= 3.2
 Package: kidiff
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils | ghostscript, xdg-utils, kiauto
+Depends: ${misc:Depends}, ${python3:Depends}, kicad (>= 5.1.0), imagemagick, poppler-utils | ghostscript, xdg-utils, kiauto, librsvg2-bin
 Conflicts: kicad-pcb-diff
 Recommends: git
 Description: KiCad PCB/SCH diff tool
