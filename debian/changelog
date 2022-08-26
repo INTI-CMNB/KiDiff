@@ -1,3 +1,9 @@
+kidiff (2.4.0-1) stable; urgency=medium
+
+  * Added support for adding/removing SCH sheets
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Fri, 26 Aug 2022 13:05:49 -0300
+
 kidiff (2.3.1-1) stable; urgency=medium
 
   * Fixed KiCad 5 problems with inner layers (undefined names)
