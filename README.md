@@ -49,7 +49,7 @@ In a Debian/Ubuntu system you'll first need to add this
 [repo](https://set-soft.github.io/debian/) and then use:
 
 ```shell
-$ sudo apt-get install python3 kicad imagemagick poppler-utils xdg-utils kiauto`
+$ sudo apt-get install kidiff`
 ```
 
 Arch Linux can install [kicad-pcb-diff](https://aur.archlinux.org/packages/kicad-pcb-diff) using the AUR repository:
@@ -59,7 +59,7 @@ $ yay -S kicad-pcb-diff
 ```
 
 Note: if you are using Debian, or some derived distro like Ubuntu, you can
-find a Debian package in the releases section.
+find a Debian package in the releases section. But using the repo is simpler.
 
 ## Standalone use
 
