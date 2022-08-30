@@ -95,6 +95,12 @@ find a Debian package in the releases section.
 
 Once configured the tool will be used every time you do a diff using *git*.
 
+### Temporarily disabling the git plug-in
+
+Sometimes the graphics diff is not what you want. To disable it just invoke
+`git diff` using the `--no-ext-diff` option. It will force the text mode
+original diff behavior.
+
 # Usage
 
 The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure
