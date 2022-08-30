@@ -155,6 +155,8 @@ Note that when using the *git* plug-in the script looks for a file named
 Using this you can reduce the time wasted computing diffs for empty or useless
 layers.
 
+Note that lines starting with # are skipped.
+
 See also `--layers`
 
 ## --force_gs

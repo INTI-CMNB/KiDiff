@@ -599,7 +599,7 @@ if __name__ == '__main__':
             logger.error('Invalid file name ('+layer_file+')')
             exit(WRONG_EXCLUDE)
         with open(layer_file) as f:
-            layer_list = [get_layer(line) for line in f]
+            layer_list = [get_layer(line) for line in f if line[0] != '#']
         logger.debug('layers to be {}: {}'.format('excluded' if is_exclude else 'included', layer_list))
 
     # Are we using PCBs or SCHs?

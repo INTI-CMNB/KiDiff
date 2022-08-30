@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Now PCB layers are cached by layer ID, not name.
+- Lines in ex/include lists that begin with # are just ignored.
+  Before we let them fail to match because the names weren't valid.
+  This avoids confusing warnings.
 
 ## [2.4.0] - Unreleased
 ### Added
