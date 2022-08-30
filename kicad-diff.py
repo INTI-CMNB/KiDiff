@@ -137,6 +137,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
 
 
 def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
+    """ Plot the schematic in one PDF file """
     name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_names[0])
     # Create the PDF, or use a cached version
     if not isfile(name_pdf):
@@ -161,7 +162,7 @@ def svg2png(svg_file, png_file):
 
 def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
     """ Plot the schematic using SVG files so we get separated files with correct names.
-        The convert all the pages to PDFs.
+        Then convert all the pages to PNGs.
         This function is used only when all pages are requested """
     base_dir_and_name = hash_dir+sep+file_no_ext
     files = glob(base_dir_and_name+'*.png')
@@ -188,7 +189,9 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
     # We don't have unique ID layers, so we use a different mechanism
     # This is just a list of sheet names, inside a hash
     for c, f in enumerate(sorted(files)):
-        layer_names[splitext(basename(f))[0]] = c
+        name = splitext(basename(f))[0]
+        if not name.endswith('_blanked'):
+            layer_names[name] = c
 
 
 def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
@@ -253,8 +256,11 @@ def pdf2png(base_name, blank=False, ref=None):
     if blank:
         # Create a blank file
         logger.debug('Blanking '+dest1)
-        cmd = ('convert "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, dest1))
+        blanked = base_name+'_blanked.png'
+        cmd = ('convert "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, blanked))
         run_command(['bash', '-c', cmd])
+        remove(dest1)
+        dest1 = blanked
     if isfile(dest1):
         return [dest1]
     if isfile(destm):
