@@ -146,9 +146,8 @@ Edge.Cuts
 Margin
 ```
 
-You can also use the KiCad internal layer ID number. Note that currently
-when using KiCad 6 the name of the layer is the default KiCad name, not the
-name defined by the user.
+You can also use the KiCad internal layer ID number. This will avoid warnings
+about undefined layer names.
 
 Note that when using the *git* plug-in the script looks for a file named
 *.kicad-git-diff* at the root of the repo.
@@ -183,7 +182,7 @@ indicated here.
 
 Important: when this list is only composed by layer numbers KiDiff skips any
 check and uses this list of layers, even if they aren't defined in any of the
-specified PCBs.
+specified PCBs. Otherwise you can get warnings about names not defined.
 
 `--layers` and `--exclude` are mutually exclusive.
 

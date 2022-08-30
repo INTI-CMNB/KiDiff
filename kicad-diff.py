@@ -68,7 +68,6 @@ NEW_INVALID = 12
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
 use_poppler = True
-all_numeric = True
 DEFAULT_LAYER_NAMES = {
     pcbnew.F_Cu: 'F.Cu',
     pcbnew.B_Cu: 'B.Cu',
@@ -408,9 +407,12 @@ def load_layer_names(pcb_file):
     layer_names = {}
     with open(pcb_file, "r") as file_file:
         collect_layers = False
+        name_to_id = {}
+        re_layer = re.compile(r'\s+\((\d+)\s+(\S+)')
+        re_layer_user = re.compile(r'\s+\((\d+)\s+(\S+)\s+user\s+"([^"]+)"')
         for line in file_file:
             if collect_layers:
-                z = re.match(r'\s+\((\d+)\s+(\S+)', line)
+                z = re_layer.match(line)
                 if z:
                     res = z.groups()
                     lname = res[1]
@@ -419,7 +421,16 @@ def load_layer_names(pcb_file):
                     lnum = res[0]
                     logger.debug(lname+'->'+lnum)
                     ilnum = int(lnum)
-                    if (lname in layer_list or ilnum in layer_list) ^ is_exclude:
+                    name_to_id[lname] = ilnum
+                    # Check if the user renamed this layer
+                    z = re_layer_user.match(line)
+                    if z:
+                        lname_user = z.group(3)
+                        name_to_id[lname_user] = ilnum
+                    else:
+                        lname_user = lname
+                    # Is in the in/exclude list?
+                    if (lname in layer_list or lname_user in layer_list or ilnum in layer_list) ^ is_exclude:
                         layer_names[ilnum] = lname
                     else:
                         logger.debug('Excluding layer '+res[1])
@@ -429,10 +440,17 @@ def load_layer_names(pcb_file):
             else:
                 if re.search(r'\s+\(layers', line):
                     collect_layers = True
-    if layer_list and not is_exclude and all_numeric:
-        # Use this list, forget about what the PCB says
-        filtered_names = {int(la): id2def_name(la) for la in layer_list}
-        return layer_names, filtered_names
+    if layer_list and not is_exclude:
+        wanted_layers = {}
+        for la in layer_list:
+            if isinstance(la, int):
+                wanted_layers[la] = id2def_name(la)
+            elif la in name_to_id:
+                num = name_to_id[la]
+                wanted_layers[num] = id2def_name(num)
+            else:
+                logger.warning('Requested layer `{}` not in `{}`'.format(la, pcb_file))
+        return layer_names, wanted_layers
     return layer_names, layer_names
 
 
@@ -449,7 +467,7 @@ def get_layer(line):
     try:
         line = int(line)
     except ValueError:
-        all_numeric = False
+        pass
     return line
 
 
