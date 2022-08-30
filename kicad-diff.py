@@ -93,7 +93,7 @@ DEFAULT_LAYER_NAMES = {
 }
 
 
-def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
+def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
     # Setup the KiCad plotter
     board = LoadBoard(file)
     pctl = PLOT_CONTROLLER(board)
@@ -115,10 +115,13 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
     popt.SetSubtractMaskFromSilk(False)
 
     # Plot all used layers to PDF files
-    for i, layer in layer_names.items():
+    for i, layer in wanted_layers.items():
+        if i not in layer_names:
+            # This layer was removed, don't plot it
+            continue
         layer_rep = layer.replace('.', '_')
         name_pdf_kicad = '{}{}{}-{}.pdf'.format(hash_dir, sep, file_no_ext, layer_rep)
-        name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_rep)
+        name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, i)
         # Create the PDF, or use a cached version
         if not isfile(name_pdf):
             logger.info('Plotting %s layer' % layer)
@@ -129,11 +132,15 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names):
             pctl.PlotLayer()
             pctl.ClosePlot()
             if not isfile(name_pdf_kicad):
-                logger.error('Failed to plot %s' % name_pdf_kicad)
+                logger.error('Failed to plot '+name_pdf_kicad)
                 exit(FAILED_TO_PLOT)
             rename(name_pdf_kicad, name_pdf)
+
         else:
-            logger.debug('Using cached %s layer' % layer)
+            logger.debug('Using cached {} layer'.format(layer))
+        layer_name = layer_names[i]
+        if layer_name != layer:
+            layer_names[i] = '{} ({})'.format(layer_name, layer)
 
 
 def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
@@ -211,11 +218,13 @@ def GenImages(file, file_hash, all):
     file_no_ext = splitext(basename(file))[0]
 
     # Read the layer names from the file
-    layer_names = load_layer_names(file) if is_pcb else {0: 'Schematic_all' if args.all_pages else 'Schematic'}
-
     if is_pcb:
-        GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names)
+        layer_names, wanted_layers = load_layer_names(file)
+        logger.debug('Layers list: '+str(layer_names))
+        logger.debug('Wanted layers: '+str(wanted_layers))
+        GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers)
     else:
+        layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
         GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all)
     return layer_names
 
@@ -251,7 +260,7 @@ def pdf2png(base_name, blank=False, ref=None):
         run_command(['bash', '-c', cmd])
     else:
         png = ref+'.png'
-        assert isfile(png)
+        assert isfile(png), png
         copy2(png, dest1)
     if blank:
         # Create a blank file
@@ -314,10 +323,13 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
             layer_rep = layer = i
             # Try to reconstruct the sheet path (fails if the names contains -)
             name_layer = i.replace('-', '/')
-        else:
+        elif is_pcb:
             layer = all_layers[i]
-            name_layer = layer if layer == 'Schematic' else 'Layer: '+layer
-            layer_rep = layer.replace('.', '_')
+            name_layer = 'Layer: '+layer
+            layer_rep = str(i)
+        else:  # Normal schematic (single or no rsvg-convert)
+            layer_rep = layer = all_layers[i]
+            name_layer = layer
         # Convert the PDFs to PNGs
         old_file = old_hash_dir+sep+layer_rep
         new_file = new_hash_dir+sep+layer_rep
@@ -394,10 +406,6 @@ def id2def_name(id):
 
 def load_layer_names(pcb_file):
     layer_names = {}
-    if layer_list and not is_exclude and all_numeric:
-        # Use this list, forget about what the PCB says
-        layer_names = {int(la): id2def_name(la) for la in layer_list}
-        return layer_names
     with open(pcb_file, "r") as file_file:
         collect_layers = False
         for line in file_file:
@@ -421,7 +429,11 @@ def load_layer_names(pcb_file):
             else:
                 if re.search(r'\s+\(layers', line):
                     collect_layers = True
-    return layer_names
+    if layer_list and not is_exclude and all_numeric:
+        # Use this list, forget about what the PCB says
+        filtered_names = {int(la): id2def_name(la) for la in layer_list}
+        return layer_names, filtered_names
+    return layer_names, layer_names
 
 
 def thre_type(astr, min=0, max=1e6):

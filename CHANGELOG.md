@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The 'only in XXX' message worked only the first time, after caching the
   files it wasn't informed anymore.
 
+### Changed
+- Now PCB layers are cached by layer ID, not name.
+
 ## [2.4.0] - Unreleased
 ### Added
 - Support for adding/removing SCH sheets
