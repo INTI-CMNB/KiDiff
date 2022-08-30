@@ -3,3 +3,5 @@ diff.epr
 output/
 test/
 __pycache__/
+.coverage
+pp
