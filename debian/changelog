@@ -1,3 +1,15 @@
+kidiff (2.4.1-1) stable; urgency=medium
+
+  * Added support for user defined layer names.
+  * Fixed the 'only in XXX' message worked only the first time, after caching
+    the files it wasn't informed anymore.
+  * Changed: Now PCB layers are cached by layer ID, not name.
+  * Lines in ex/include lists that begin with # are just ignored.
+    Before we let them fail to match because the names weren't valid.
+    This avoids confusing warnings.
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Tue, 30 Aug 2022 13:20:52 -0300
+
 kidiff (2.4.0-1) stable; urgency=medium
 
   * Added support for adding/removing SCH sheets

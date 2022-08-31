@@ -29,17 +29,18 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2022, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.4.0'
+__version__ = '2.4.1'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
 
 import argparse
 import atexit
+import csv
 from glob import glob
 from hashlib import sha1
 import logging
-from os.path import isfile, isdir, basename, sep, splitext, abspath
+from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname
 from os import makedirs, rename, remove
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
 import pcbnew
@@ -65,6 +66,7 @@ WRONG_ARGUMENT = 9
 DIFF_TOO_BIG = 10
 OLD_INVALID = 11
 NEW_INVALID = 12
+NOTHING_TO_COMPARE = 13
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
 use_poppler = True
@@ -178,7 +180,8 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
         svgs = glob(base_dir_and_name+'*.svg')
         if len(svgs) < 2:
             logger.info('Plotting the schematic')
-            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--no_frame', '--all_pages', file, hash_dir]
+            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--no_frame', '--all_pages', file,
+                   hash_dir]
             run_command(cmd)
         files = glob(base_dir_and_name+'*.svg')
         if not files:
@@ -218,7 +221,7 @@ def GenImages(file, file_hash, all):
 
     # Read the layer names from the file
     if is_pcb:
-        layer_names, wanted_layers = load_layer_names(file)
+        layer_names, wanted_layers = load_layer_names(file, hash_dir)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
         GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers)
@@ -316,6 +319,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     all_layers = {}
     all_layers.update(layers_old)
     all_layers.update(layers_new)
+    logger.error(all_layers)
     for i in sorted(all_layers.keys()):
         if svg_mode:
             # Multisheet schematic
@@ -360,9 +364,13 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     if not output_pdf.endswith('.pdf'):
         output_pdf += '.pdf'
     files.append(output_pdf)
-    logger.info('Joining all diffs into one PDF')
-    logger.debug(files)
-    call(files)
+    if len(files) > 2:
+        logger.info('Joining all diffs into one PDF')
+        logger.debug(files)
+        call(files)
+    else:
+        logger.error('Nothing to compare!')
+        exit(NOTHING_TO_COMPARE)
     if not isfile(output_pdf):
         logger.error('Failed to join diffs into %s' % output_pdf)
         exit(FAILED_TO_JOIN)
@@ -403,11 +411,45 @@ def id2def_name(id):
     return DEFAULT_LAYER_NAMES[id]
 
 
-def load_layer_names(pcb_file):
+def load_cached_layers(layers_file):
     layer_names = {}
+    name_to_id = {}
+    logger.debug('Loading layers from cache '+layers_file)
+    with open(layers_file) as csvfile:
+        reader = csv.reader(csvfile)
+        header = next(reader)
+        logger.debug(header)
+        for r in reader:
+            ilnum = int(r[0])
+            lname = r[1]
+            lname_user = r[2]
+            name_to_id[lname] = ilnum
+            logger.debug(lname+'->'+str(ilnum))
+            if lname_user:
+                name_to_id[lname_user] = ilnum
+            # Is in the in/exclude list?
+            if (lname in layer_list or lname_user in layer_list or ilnum in layer_list) ^ is_exclude:
+                layer_names[ilnum] = lname
+            else:
+                logger.debug('Excluding layer '+lname)
+    return layer_names, name_to_id
+
+
+def save_layers_to_cache(layers_file, all_layers):
+    makedirs(dirname(layers_file), exist_ok=True)
+    with open(layers_file, 'wt') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(('Layer ID', 'Layer name', 'User name'))
+        writer.writerows(all_layers)
+
+
+def load_layers_from_pcb(pcb_file, layers_file):
+    layer_names = {}
+    name_to_id = {}
+    all_layers = []
+    logger.debug('Loading layers from PCB '+pcb_file)
     with open(pcb_file, "r") as file_file:
         collect_layers = False
-        name_to_id = {}
         re_layer = re.compile(r'\s+\((\d+)\s+(\S+)')
         re_layer_user = re.compile(r'\s+\((\d+)\s+(\S+)\s+user\s+"([^"]+)"')
         for line in file_file:
@@ -427,8 +469,10 @@ def load_layer_names(pcb_file):
                     if z:
                         lname_user = z.group(3)
                         name_to_id[lname_user] = ilnum
+                        all_layers.append((ilnum, lname, lname_user))
                     else:
                         lname_user = lname
+                        all_layers.append((ilnum, lname, ''))
                     # Is in the in/exclude list?
                     if (lname in layer_list or lname_user in layer_list or ilnum in layer_list) ^ is_exclude:
                         layer_names[ilnum] = lname
@@ -440,6 +484,17 @@ def load_layer_names(pcb_file):
             else:
                 if re.search(r'\s+\(layers', line):
                     collect_layers = True
+    save_layers_to_cache(layers_file, all_layers)
+    return layer_names, name_to_id
+
+
+def load_layer_names(pcb_file, hash_dir):
+    # Check if this is cached
+    layers_file = hash_dir+sep+'layers.csv'
+    if isfile(layers_file):
+        layer_names, name_to_id = load_cached_layers(layers_file)
+    else:
+        layer_names, name_to_id = load_layers_from_pcb(pcb_file, layers_file)
     if layer_list and not is_exclude:
         wanted_layers = {}
         for la in layer_list:
