@@ -280,6 +280,19 @@ You can then compare two files using the cached images, you just need to
 provide the hashes you want to compare. The *old_file* and *new_file* won't
 be used.
 
+# Similar tools
+
+## KiCad-Diff
+
+[KiCad-Diff](https://github.com/Gasman2014/KiCad-Diff) is a diff tool for PCBs,
+is more oriented to GUI use. It has support not only for `git` but also for
+`fossil` and `svn`. You can navigate the diffs and get information about added
+or removed items, all using a browser. And is fast (all is handled using SVGs).
+
+It doesn't support schematics, can't be directly used as a git plug-in
+(perhaps using some wrapper), can't meassure the ammout of difference and
+doesn't generate a file to see the differences (only browsable).
+
 # Credits and notes
 
 - This script is strongly based on Jesse Vincent
