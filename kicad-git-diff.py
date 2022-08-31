@@ -90,7 +90,11 @@ if __name__ == '__main__':
                 dir_cache = None
 
     command = [dirname(realpath(__file__))+sep+'kicad-diff.py', '--resolution', str(resolution),
-               '--old_file_hash', args.old_file_hash, '--new_file_hash', args.new_file_hash]
+               '--old_file_hash', args.old_file_hash]
+    if int(args.new_file_hash, 16):
+        # When we compare to the currently modified file git uses 0 as hash
+        # If we use it all files that we didn't yet commit become the same
+        command += ['--new_file_hash', args.new_file_hash]
     if verb is not None:
         command.append(verb)
     if dir_cache is not None:
