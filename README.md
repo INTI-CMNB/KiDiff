@@ -101,6 +101,15 @@ Sometimes the graphics diff is not what you want. To disable it just invoke
 `git diff` using the `--no-ext-diff` option. It will force the text mode
 original diff behavior.
 
+### Disabling the pager
+
+Git will use a pager to allow scrolling back and forth. This could be annoying
+because you must exit it, the git option `--no-pager` disables it. Example:
+
+```shell
+$ git --no-pager diff XXXXXX.kicad_pcb
+```
+
 # Usage
 
 The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure
