@@ -13,7 +13,6 @@ pytest-3 --log-cli-level debug
 
 import os
 import sys
-import logging
 # Look for the 'utils' module from where the script is running
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(script_dir))
@@ -24,7 +23,6 @@ from utils import context
 def test_sch_simple_1(test_dir):
     ctx = context.TestContextSCH(test_dir, 1)
     ctx.run()
-    #ctx.compare_out_file()
     ctx.compare_out_pngs()
     ctx.clean_up()
 
@@ -33,7 +31,6 @@ def test_sch_multi_1(test_dir):
     ctx = context.TestContextSCH(test_dir, 2)
     ctx.run(['--all_pages'])
     ctx.compare_out_file()
-    #ctx.compare_out_pngs()
     ctx.clean_up()
 
 
