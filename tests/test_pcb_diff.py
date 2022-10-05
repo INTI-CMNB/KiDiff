@@ -22,7 +22,7 @@ from utils import context
 
 def test_pcb_simple_1(test_dir):
     ctx = context.TestContext(test_dir, 1)
-    ctx.run()
+    ctx.run(ops=['--only_different'])
     ctx.compare_out_pngs()
     ctx.clean_up()
 

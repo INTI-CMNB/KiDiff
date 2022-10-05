@@ -234,13 +234,15 @@ def GenImages(file, file_hash, all):
 def run_command(command):
     logger.debug('Executing: '+str(command))
     try:
-        run(command, check=True)
+        res = run(command, check=True, stdout=PIPE, stderr=STDOUT).stdout.decode()
     except CalledProcessError as e:
+        res = ''
         logger.debug('Running {} returned {}'.format(e.cmd, e.returncode))
         if e.output:
             logger.debug('- StdOut from command: '+e.output.decode())
         if e.stderr:
             logger.debug('- StdErr from command: '+e.stderr.decode())
+    return res
 
 
 def pdf2png(base_name, blank=False, ref=None):
@@ -279,14 +281,29 @@ def pdf2png(base_name, blank=False, ref=None):
     assert False
 
 
-def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
+def create_no_diff(output_dir):
+    diff_name = output_dir+sep+'no-diff.png'
+    cmd = ['convert', '-size', '640x480', '-background', 'white', '-fill', 'black', '-pointsize', '72', '-gravity', 'center',
+           'label:No diff', diff_name]
+    run_command(cmd)
+    return diff_name
+
+
+def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
     command = ['bash', '-c', '( convert "'+new_name+'" miff:- ; convert "'+old_name+'" miff:- ) | ' +
                r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
+    include = True
+    if only_different:
+        res = run_command(['identify', '-format', '%[colorspace]', diff_name])
+        include = res != 'Gray'
+        if res not in ['Gray', 'sRGB']:
+            logger.warning('Unknown color space `{}`'.format(res))
+    return include
 
 
-def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer):
+def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
     # Compare both
     cmd = ['compare',
            # Tolerate 5 % error in color (configurable)
@@ -308,9 +325,10 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
            'text 10,'+font_size+" '"+name_layer+"'", diff_name]
     logger.debug('Executing: '+str(cmd))
     call(cmd)
+    return not only_different or (only_different and errors != 0)
 
 
-def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
+def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
     files = ['convert']
@@ -319,6 +337,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     all_layers = {}
     all_layers.update(layers_old)
     all_layers.update(layers_new)
+    skipped = 0
     for i in sorted(all_layers.keys()):
         if svg_mode:
             # Multisheet schematic
@@ -349,13 +368,21 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
             diff_name = output_dir+sep+'diff-'+layer_rep+str(i)+'.png'
             logger.info('Creating diff for '+(layer+'_'+str(i) if len(old) > 1 else layer))
             if args.diff_mode == 'red_green':
-                create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
+                inc = create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer,
+                                         only_different)
             else:
-                create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer)
+                inc = create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer,
+                                       only_different)
             if not isfile(diff_name):
                 logger.error('Failed to create diff %s' % diff_name)
                 exit(FAILED_TO_DIFF)
-            files.append(diff_name)
+            if inc:
+                files.append(diff_name)
+            else:
+                skipped = skipped+1
+    # Check if we skipped all
+    if len(files) == 1 and skipped:
+        files.append(create_no_diff(output_dir))
     # Join all the JPGs into one PDF
     out_name = output_dir+sep+args.output_name
     output_pdf = out_name
@@ -370,6 +397,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new):
     else:
         logger.error('Nothing to compare!')
         exit(NOTHING_TO_COMPARE)
+
     if not isfile(output_pdf):
         logger.error('Failed to join diffs into %s' % output_pdf)
         exit(FAILED_TO_JOIN)
@@ -545,6 +573,7 @@ if __name__ == '__main__':
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
     parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
     parser.add_argument('--only_cache', help='Just populate the cache using OLD_FILE, no diff', action='store_true')
+    parser.add_argument('--only_different', help='Only include the pages with differences', action='store_true')
     parser.add_argument('--output_dir', help='Directory for the output file', type=str)
     parser.add_argument('--output_name', help='Name of the output diff', type=str, default='diff.pdf')
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
@@ -581,7 +610,7 @@ if __name__ == '__main__':
             logger.error('No pdftoppm or ghostscript command, install poppler-utils or ghostscript')
             exit(MISSING_TOOLS)
         use_poppler = False
-    if which('xdg-open') is None:
+    if args.no_reader and which('xdg-open') is None:
         logger.warning('No xdg-open command, install xdg-utils. Disabling the PDF viewer.')
         args.no_reader = False
 
@@ -677,7 +706,7 @@ if __name__ == '__main__':
         exit(0)
     layers_new = GenImages(new_file, new_file_hash, args.all_pages)
 
-    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new)
+    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different)
 
     if args.no_reader:
         call(['xdg-open', output_pdf])
