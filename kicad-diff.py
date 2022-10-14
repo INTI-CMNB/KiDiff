@@ -92,6 +92,7 @@ DEFAULT_LAYER_NAMES = {
     pcbnew.F_Fab: 'F.Fab',
     pcbnew.B_Fab: 'B.Fab',
 }
+SCHEMATIC_SVG_BASE_NAME = 'Schematic_root'
 
 
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
@@ -172,25 +173,32 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
     """ Plot the schematic using SVG files so we get separated files with correct names.
         Then convert all the pages to PNGs.
         This function is used only when all pages are requested """
-    base_dir_and_name = hash_dir+sep+file_no_ext
-    files = glob(base_dir_and_name+'*.png')
+    pattern_svgs = hash_dir+sep+file_no_ext+'*.svg'
+    pattern_pngs = hash_dir+sep+SCHEMATIC_SVG_BASE_NAME+'*.png'
+    files = glob(pattern_pngs)
     # Create the PNG, or use a cached version
-    if len(files) < 2:
-        # Note: If this is more than one page we should have at least 2 files.
-        svgs = glob(base_dir_and_name+'*.svg')
-        if len(svgs) < 2:
+    if not files:
+        svgs = glob(pattern_svgs)
+        if not svgs:
             logger.info('Plotting the schematic')
             cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--no_frame', '--all_pages', file,
                    hash_dir]
             run_command(cmd)
-        files = glob(base_dir_and_name+'*.svg')
+        files = glob(pattern_svgs)
         if not files:
             logger.error('Failed to plot %s' % file)
             exit(FAILED_TO_PLOT)
         # Convert the files to PNG
+        # Also rename the files to make independent of the project name
+        len_file_no_ext = len(file_no_ext)
         for f in files:
-            svg2png(f, f.replace('.svg', '.png'))
-        files = glob(base_dir_and_name+'*.png')
+            dname = dirname(f)
+            name = splitext(basename(f))
+            if name[0].startswith(file_no_ext):
+                svg2png(f, dname+sep+SCHEMATIC_SVG_BASE_NAME+name[0][len_file_no_ext:]+'.png')
+            else:
+                logger.warning('Unexpected file `{}`'.format(f))
+        files = glob(pattern_pngs)
     else:
         logger.debug('Using cached schematic')
     # Remove the "Schematic_all" entry
@@ -289,8 +297,15 @@ def create_no_diff(output_dir):
     return diff_name
 
 
+def adapt_name(name_layer):
+    if name_layer.startswith(SCHEMATIC_SVG_BASE_NAME):
+        rest = name_layer[len(SCHEMATIC_SVG_BASE_NAME):]
+        return '/'+rest if not rest else rest
+    return name_layer
+
+
 def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
-    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+name_layer+'\'" '
+    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+'\'" '
     command = ['bash', '-c', '( convert "'+new_name+'" miff:- ; convert "'+old_name+'" miff:- ) | ' +
                r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
@@ -322,7 +337,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
         logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
         exit(DIFF_TOO_BIG)
     cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
-           'text 10,'+font_size+" '"+name_layer+"'", diff_name]
+           'text 10,'+font_size+" '"+adapt_name(name_layer)+"'", diff_name]
     logger.debug('Executing: '+str(cmd))
     call(cmd)
     return not only_different or (only_different and errors != 0)

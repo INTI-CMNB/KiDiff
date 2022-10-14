@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] 2.4.3
+## [2.4.3] - 2022-10-14
+### Added
+- Option to skip the test for input files.
+  Useful to compare from cache.
+- Allow to compare two multi-page schematics even when their base name is
+  different.
+
+### Changed
+- When comparing multiple sheets using the SVG mode the displayed name of the
+  sheet is like the sheet path displayed by KiCad
 
 ## [2.4.2] - 2022-10-05
 ### Added
