@@ -571,6 +571,7 @@ if __name__ == '__main__':
     group.add_argument('--layers', help='Process layers in file (one layer per line)', type=str)
     parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
+    parser.add_argument('--no_exist_check', help="Don't check if files exists, must specify the cache hash", action='store_true')
     parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
     parser.add_argument('--only_cache', help='Just populate the cache using OLD_FILE, no diff', action='store_true')
     parser.add_argument('--only_different', help='Only include the pages with differences', action='store_true')
@@ -626,7 +627,7 @@ if __name__ == '__main__':
 
     # Check the arguments
     old_file = args.old_file
-    if not isfile(old_file):
+    if not (args.no_exist_check and args.old_file_hash) and not isfile(old_file):
         logger.error('%s isn\'t a valid file name' % old_file)
         exit(OLD_INVALID)
     if args.old_file_hash:
@@ -636,7 +637,7 @@ if __name__ == '__main__':
     logger.debug('{} SHA1 is {}'.format(old_file, old_file_hash))
 
     new_file = args.new_file
-    if not isfile(new_file) and not args.only_cache:
+    if not (args.no_exist_check and args.new_file_hash) and not isfile(new_file) and not args.only_cache:
         logger.error('%s isn\'t a valid file name' % new_file)
         exit(NEW_INVALID)
     new_file_hash = None
