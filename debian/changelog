@@ -1,3 +1,9 @@
+kidiff (2.4.4-1) stable; urgency=medium
+
+  * KiCad 7 support
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Mon, 13 Feb 2023 12:39:49 -0300
+
 kidiff (2.4.3-1) stable; urgency=medium
 
   * Added option to skip the test for input files.

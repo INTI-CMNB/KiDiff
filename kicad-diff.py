@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# Copyright (c) 2020-2022 Salvador E. Tropea
-# Copyright (c) 2020-2022 Instituto Nacional de Tecnologïa Industrial
+# Copyright (c) 2020-2023 Salvador E. Tropea
+# Copyright (c) 2020-2023 Instituto Nacional de Tecnologïa Industrial
 # License: GPL-2.0
 # Project: KiCad Diff
 # Adapted from: https://github.com/obra/kicad-tools
@@ -29,7 +29,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2022, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.4.3'
+__version__ = '2.4.4'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -95,6 +95,17 @@ DEFAULT_LAYER_NAMES = {
 SCHEMATIC_SVG_BASE_NAME = 'Schematic_root'
 
 
+def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
+    if hasattr(po, 'SetExcludeEdgeLayer'):
+        po.SetExcludeEdgeLayer(exclude_edge_layer)
+    elif not exclude_edge_layer:
+        # Include the edge on all layers
+        # Doesn't work in 7.0.0. Bug: https://gitlab.com/kicad/code/kicad/-/issues/13841
+        include = pcbnew.LSET()
+        include.addLayer(layer)
+        po.SetPlotOnAllLayersSelection(include)
+
+
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
     # Setup the KiCad plotter
     board = LoadBoard(file)
@@ -110,7 +121,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     popt.SetScale(0)
     popt.SetMirror(False)
     popt.SetUseGerberAttributes(True)
-    popt.SetExcludeEdgeLayer(False)
+    SetExcludeEdgeLayer(popt, False, board.GetLayerID('Edge.Cuts'))
     popt.SetUseAuxOrigin(False)
     popt.SetSkipPlotNPTH_Pads(False)
     popt.SetPlotViaOnMaskLayer(True)
@@ -586,7 +597,8 @@ if __name__ == '__main__':
     group.add_argument('--layers', help='Process layers in file (one layer per line)', type=str)
     parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
-    parser.add_argument('--no_exist_check', help="Don't check if files exists, must specify the cache hash", action='store_true')
+    parser.add_argument('--no_exist_check', help="Don't check if files exists, must specify the cache hash",
+                        action='store_true')
     parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
     parser.add_argument('--only_cache', help='Just populate the cache using OLD_FILE, no diff', action='store_true')
     parser.add_argument('--only_different', help='Only include the pages with differences', action='store_true')
