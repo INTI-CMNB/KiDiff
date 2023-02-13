@@ -52,10 +52,10 @@ In a Debian/Ubuntu system you'll first need to add this
 $ sudo apt-get install kidiff`
 ```
 
-Arch Linux can install [kicad-pcb-diff](https://aur.archlinux.org/packages/kicad-pcb-diff) using the AUR repository:
+Arch Linux can install [kicad-pcb-diff](https://aur.archlinux.org/packages/kidiff) using the AUR repository:
 
 ```bash
-$ yay -S kicad-pcb-diff
+$ yay -S kidiff
 ```
 
 Note: if you are using Debian, or some derived distro like Ubuntu, you can
