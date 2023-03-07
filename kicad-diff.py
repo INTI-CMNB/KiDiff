@@ -29,7 +29,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2022, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.4.4'
+__version__ = '2.4.5'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -42,7 +42,7 @@ from hashlib import sha1
 import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname
 from os import makedirs, rename, remove
-from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion
+from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion, ToMM
 import pcbnew
 import re
 from shutil import rmtree, which, copy2
@@ -105,6 +105,18 @@ def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
         include.addLayer(layer)
         po.SetPlotOnAllLayersSelection(include)
 
+def WriteBBox(board, hash_dir):
+    fname = '{}{}bbox.csv'.format(hash_dir, sep)
+    if isfile(fname):
+        # Use the cached value if available, in cache mode the file can be bogus
+        with open(fname, 'rt') as f:
+            vals = tuple(map(float, f.read().split(',')))
+    else:
+        bbox = board.GetBoundingBox()
+        vals = tuple(map(ToMM, (bbox.GetX(), bbox.GetY(), bbox.GetWidth(), bbox.GetHeight())))
+        with open(fname, 'wt') as f:
+            f.write(','.join(tuple(map(str, vals))))
+    return vals
 
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
     # Setup the KiCad plotter
@@ -117,8 +129,6 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     # KiCad 5 only
     if kicad_version_major == 5:
         popt.SetLineWidth(FromMM(0.35))
-    popt.SetAutoScale(True)
-    popt.SetScale(0)
     popt.SetMirror(False)
     popt.SetUseGerberAttributes(True)
     SetExcludeEdgeLayer(popt, False, board.GetLayerID('Edge.Cuts'))
@@ -128,32 +138,44 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     popt.SetSubtractMaskFromSilk(False)
 
     # Plot all used layers to PDF files
-    for i, layer in wanted_layers.items():
-        if i not in layer_names:
-            # This layer was removed, don't plot it
-            continue
-        layer_rep = layer.replace('.', '_')
-        name_pdf_kicad = '{}{}{}-{}.pdf'.format(hash_dir, sep, file_no_ext, layer_rep)
-        name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, i)
-        # Create the PDF, or use a cached version
-        if not isfile(name_pdf):
-            logger.info('Plotting %s layer' % layer)
-            pctl.SetLayer(i)
-            pctl.OpenPlotfile(layer, PLOT_FORMAT_PDF, layer)
-            pctl.PlotLayer()
-            pctl.SetLayer(Edge_Cuts)
-            pctl.PlotLayer()
-            pctl.ClosePlot()
-            if not isfile(name_pdf_kicad):
-                logger.error('Failed to plot '+name_pdf_kicad)
-                exit(FAILED_TO_PLOT)
-            rename(name_pdf_kicad, name_pdf)
-
+    for scaled in range(2):
+        # We create 2 versions: one with autoscale and the other without it
+        # If the BBox is the same we use the scaled one, otherwise we use the non-scaled
+        if scaled:
+            popt.SetAutoScale(True)
+            popt.SetScale(0)
+            sc_id = ''
         else:
-            logger.debug('Using cached {} layer'.format(layer))
-        layer_name = layer_names[i]
-        if layer_name != layer:
-            layer_names[i] = '{} ({})'.format(layer_name, layer)
+            popt.SetAutoScale(False)
+            popt.SetScale(1)
+            sc_id = '_1'
+        for i, layer in wanted_layers.items():
+            if i not in layer_names:
+                # This layer was removed, don't plot it
+                continue
+            layer_rep = layer.replace('.', '_')
+            name_pdf_kicad = '{}{}{}-{}.pdf'.format(hash_dir, sep, file_no_ext, layer_rep)
+            name_pdf = '{}{}{}{}.pdf'.format(hash_dir, sep, i, sc_id)
+            # Create the PDF, or use a cached version
+            if not isfile(name_pdf):
+                logger.info('Plotting %s layer' % layer)
+                pctl.SetLayer(i)
+                pctl.OpenPlotfile(layer, PLOT_FORMAT_PDF, layer)
+                pctl.PlotLayer()
+                pctl.SetLayer(Edge_Cuts)
+                pctl.PlotLayer()
+                pctl.ClosePlot()
+                if not isfile(name_pdf_kicad):
+                    logger.error('Failed to plot '+name_pdf_kicad)
+                    exit(FAILED_TO_PLOT)
+                rename(name_pdf_kicad, name_pdf)
+
+            else:
+                logger.debug('Using cached {} layer'.format(layer))
+            layer_name = layer_names[i]
+            if layer_name != layer:
+                layer_names[i] = '{} ({})'.format(layer_name, layer)
+    return WriteBBox(board, hash_dir)
 
 
 def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
@@ -243,11 +265,13 @@ def GenImages(file, file_hash, all):
         layer_names, wanted_layers = load_layer_names(file, hash_dir)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
-        GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers)
+        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers)
     else:
         layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
         GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all)
-    return layer_names
+        # No BBox needed
+        res = True
+    return layer_names, res
 
 
 def run_command(command):
@@ -354,7 +378,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     return not only_different or (only_different and errors != 0)
 
 
-def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different):
+def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different, changed):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
     files = ['convert']
@@ -374,6 +398,8 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
             layer = all_layers[i]
             name_layer = 'Layer: '+layer
             layer_rep = str(i)
+            if changed:
+                layer_rep += '_1'
         else:  # Normal schematic (single or no rsvg-convert)
             layer_rep = layer = all_layers[i]
             name_layer = layer
@@ -728,13 +754,15 @@ if __name__ == '__main__':
             logger.warning("The `rsvg-convert` tool isn't installed:")
             logger.warning("- If the number of pages changed the process will be aborted.")
 
-    layers_old = GenImages(old_file, old_file_hash, args.all_pages)
+    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages)
     if args.only_cache:
         logger.info('{} SHA1 is {}'.format(old_file, old_file_hash))
         exit(0)
-    layers_new = GenImages(new_file, new_file_hash, args.all_pages)
+    layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages)
 
-    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different)
+    zero_size = (0,0,0,0)
+    changed = bbox_old != bbox_new and bbox_old != zero_size and bbox_new != zero_size
+    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed)
 
     if args.no_reader:
         call(['xdg-open', output_pdf])
