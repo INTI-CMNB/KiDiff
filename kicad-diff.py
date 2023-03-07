@@ -172,9 +172,10 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
 
             else:
                 logger.debug('Using cached {} layer'.format(layer))
-            layer_name = layer_names[i]
-            if layer_name != layer:
-                layer_names[i] = '{} ({})'.format(layer_name, layer)
+            if scaled:
+                layer_name = layer_names[i]
+                if layer_name != layer:
+                    layer_names[i] = '{} ({})'.format(layer_name, layer)
     return WriteBBox(board, hash_dir)
 
 
