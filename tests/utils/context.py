@@ -24,7 +24,7 @@ if ng_ver:
     sys.path.insert(0, '/usr/lib/kicad-nightly/lib/python3/dist-packages')
 import pcbnew
 # Detect version
-m = re.match(r'(\d+)\.(\d+)\.(\d+)', pcbnew.GetBuildVersion())
+m = re.search(r'(\d+)\.(\d+)\.(\d+)', pcbnew.GetBuildVersion())
 major = int(m.group(1))
 minor = int(m.group(2))
 patch = int(m.group(3))
