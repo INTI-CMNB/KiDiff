@@ -360,12 +360,12 @@ def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resoluti
         extra_name = ' [diff page size]'
     else:
         extra_name = extent = ''
-    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+'\'" '
+    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+extra_name+'\'" '
     command = ['bash', '-c',
                '( convert "'+new_name+'"'+extent+' miff:- ;' +
                '  convert "'+old_name+'"'+extent+' miff:- ) | ' +
                r'convert - \( -clone 0-1 -compose darken -composite \) ' +
-               text+extra_name+' -channel RGB -combine "'+diff_name+'"']
+               text+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
     include = True
     if only_different:
