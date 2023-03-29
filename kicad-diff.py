@@ -26,10 +26,10 @@ For the SCHs we use KiAuto.
 
 """
 __author__ = 'Salvador E. Tropea'
-__copyright__ = 'Copyright 2020-2022, INTI/'+__author__
+__copyright__ = 'Copyright 2020-2023, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.4.5'
+__version__ = '2.4.6'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
