@@ -7,7 +7,7 @@
 Tests for PCB diffs
 
 For debug information use:
-pytest-3 --log-cli-level debug
+pytest-3 --log-cli-level debug --test_dir=pp -k TEST
 
 """
 
@@ -41,5 +41,12 @@ def test_sch_diff_sheets_1(test_dir):
     ctx.invert()
     ctx.set_ref_dir(extra='2')
     ctx.run(['--all_pages'])
+    ctx.compare_out_pngs()
+    ctx.clean_up()
+
+
+def test_sch_diff_size_1(test_dir):
+    ctx = context.TestContextSCH(test_dir, 6)
+    ctx.run()
     ctx.compare_out_pngs()
     ctx.clean_up()

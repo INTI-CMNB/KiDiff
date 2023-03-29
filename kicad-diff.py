@@ -45,7 +45,9 @@ from os import makedirs, rename, remove
 from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion, ToMM
 import pcbnew
 import re
+import shlex
 from shutil import rmtree, which, copy2
+from struct import unpack
 from subprocess import call, PIPE, run, STDOUT, CalledProcessError
 from sys import exit
 from tempfile import mkdtemp
@@ -105,6 +107,7 @@ def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
         include.addLayer(layer)
         po.SetPlotOnAllLayersSelection(include)
 
+
 def WriteBBox(board, hash_dir):
     fname = '{}{}bbox.csv'.format(hash_dir, sep)
     if isfile(fname):
@@ -117,6 +120,7 @@ def WriteBBox(board, hash_dir):
         with open(fname, 'wt') as f:
             f.write(','.join(tuple(map(str, vals))))
     return vals
+
 
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
     # Setup the KiCad plotter
@@ -276,7 +280,7 @@ def GenImages(file, file_hash, all):
 
 
 def run_command(command):
-    logger.debug('Executing: '+str(command))
+    logger.debug('Executing: '+shlex.join(command))
     try:
         res = run(command, check=True, stdout=PIPE, stderr=STDOUT).stdout.decode()
     except CalledProcessError as e:
@@ -340,10 +344,28 @@ def adapt_name(name_layer):
     return name_layer
 
 
+def png_size(file):
+    with open(file, 'rb') as f:
+        s = f.read(32)
+    assert s[:8] == b'\x89PNG\r\n\x1a\n' and (s[12:16] == b'IHDR')
+    w, h = unpack('>LL', s[16:24])
+    return int(w), int(h)
+
+
 def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
+    wn, hn = png_size(new_name)
+    wo, ho = png_size(old_name)
+    if wn != wo or hn != ho:
+        extent = ' -extent {}x{}'.format(max(wn, wo), max(hn, ho))
+        extra_name = ' [diff page size]'
+    else:
+        extra_name = extent = ''
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+'\'" '
-    command = ['bash', '-c', '( convert "'+new_name+'" miff:- ; convert "'+old_name+'" miff:- ) | ' +
-               r'convert - \( -clone 0-1 -compose darken -composite \) '+text+' -channel RGB -combine "'+diff_name+'"']
+    command = ['bash', '-c',
+               '( convert "'+new_name+'"'+extent+' miff:- ;' +
+               '  convert "'+old_name+'"'+extent+' miff:- ) | ' +
+               r'convert - \( -clone 0-1 -compose darken -composite \) ' +
+               text+extra_name+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
     include = True
     if only_different:
@@ -355,6 +377,13 @@ def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resoluti
 
 
 def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
+    wn, hn = png_size(new_name)
+    wo, ho = png_size(old_name)
+    if wn != wo or hn != ho:
+        extent = ' -extent {}x{}'.format(max(wn, wo), max(hn, ho))
+        extra_name = ' [diff page size]'
+    else:
+        extra_name = extent = ''
     # Compare both
     cmd = ['compare',
            # Tolerate 5 % error in color (configurable)
@@ -365,7 +394,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
            old_name,
            '-colorspace', 'RGB',
            diff_name]
-    logger.debug('Executing: '+str(cmd))
+    logger.debug('Executing: '+shlex.join(cmd))
     res = run(cmd, stdout=PIPE, stderr=STDOUT)
     errors = int(res.stdout.decode())
     logger.debug('AE for {}: {}'.format(layer, errors))
@@ -373,7 +402,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
         logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
         exit(DIFF_TOO_BIG)
     cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
-           'text 10,'+font_size+" '"+adapt_name(name_layer)+"'", diff_name]
+           'text 10,'+font_size+" '"+adapt_name(name_layer)+extra_name+"'", diff_name]
     logger.debug('Executing: '+str(cmd))
     call(cmd)
     return not only_different or (only_different and errors != 0)
@@ -761,7 +790,7 @@ if __name__ == '__main__':
         exit(0)
     layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages)
 
-    zero_size = (0,0,0,0)
+    zero_size = (0, 0, 0, 0)
     changed = bbox_old != bbox_new and bbox_old != zero_size and bbox_new != zero_size
     output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed)
 
