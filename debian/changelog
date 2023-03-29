@@ -1,3 +1,9 @@
+kidiff (2.4.7-1) stable; urgency=medium
+
+  * Fixed the message about different page size for the red_green mode
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Wed, 29 Mar 2023 09:20:14 -0300
+
 kidiff (2.4.6-1) stable; urgency=medium
 
   * Better behavior when the page sizes doesn't match
