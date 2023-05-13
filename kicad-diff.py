@@ -461,6 +461,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
             if inc:
                 files.append(diff_name)
             else:
+                remove(diff_name)
                 skipped = skipped+1
     # Check if we skipped all
     if len(files) == 1 and skipped:
