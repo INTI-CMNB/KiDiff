@@ -110,6 +110,19 @@ because you must exit it, the git option `--no-pager` disables it. Example:
 $ git --no-pager diff XXXXXX.kicad_pcb
 ```
 
+## PDF conversion policy
+
+On some systems (i.e. Debian) ImageMagick disables PDF manipulation in its
+*policy.xml* configuration file.
+Comment or remove lines like this:
+
+```
+<policy domain="coder" rights="none" pattern="PDF" />
+```
+
+On Debian 11/12 this applies to the */etc/ImageMagick-6/policy.xml* and/or
+*/etc/ImageMagick-7/policy.xml* file.
+
 # Usage
 
 The *kicad-git-diff.py* is a plug-in for *git* so you just need to configure
