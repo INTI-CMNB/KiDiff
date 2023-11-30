@@ -1,6 +1,6 @@
 #!/usr/bin/make
-PYTEST=pytest-3
-prefix=/usr/local
+PYTEST?=pytest-3
+prefix?=/usr/local
 
 all:
 
