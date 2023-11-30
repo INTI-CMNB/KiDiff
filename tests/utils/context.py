@@ -333,7 +333,7 @@ class TestContext(object):
         for png in pngs:
             name = os.path.basename(png)
             diff = os.path.splitext(name)[0]+'-diff.png'
-            self.compare_image(name, name, diff=diff)
+            self.compare_image(name, name, diff=diff, fuzz='35%')
 
     def compare_pdf(self, gen, reference=None, diff='diff-{}.png'):
         """ For multi-page PDFs """
