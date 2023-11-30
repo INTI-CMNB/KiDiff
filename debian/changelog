@@ -1,3 +1,9 @@
+kidiff (2.5.0-1) UNRELEASED; urgency=medium
+
+  * Added support to generate KiRi SVGs
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Tue, 28 Nov 2023 08:21:05 -0300
+
 kidiff (2.4.7-1) stable; urgency=medium
 
   * Fixed the message about different page size for the red_green mode

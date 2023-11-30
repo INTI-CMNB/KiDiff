@@ -29,7 +29,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2023, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.4.7'
+__version__ = '2.5.0'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -42,7 +42,7 @@ from hashlib import sha1
 import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname
 from os import makedirs, rename, remove
-from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, Edge_Cuts, GetBuildVersion, ToMM
+from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, PLOT_FORMAT_SVG, Edge_Cuts, GetBuildVersion, ToMM
 import pcbnew
 import re
 import shlex
@@ -72,6 +72,8 @@ NOTHING_TO_COMPARE = 13
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 is_pcb = True
 use_poppler = True
+# Compress SVG files using scour (KiRi mode)
+use_scour = False
 DEFAULT_LAYER_NAMES = {
     pcbnew.F_Cu: 'F.Cu',
     pcbnew.B_Cu: 'B.Cu',
@@ -122,14 +124,23 @@ def WriteBBox(board, hash_dir):
     return vals
 
 
-def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers):
+def compress_svg(name):
+    if not use_scour:
+        return
+    tmp = name+'.compressed'
+    run_command(['scour', '-i', name, '-o', tmp, '--enable-viewboxing', '--enable-id-stripping', '--enable-comment-stripping',
+                 '--shorten-ids', '--indent=none'])
+    rename(tmp, name)
+
+
+def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode):
     # Setup the KiCad plotter
     board = LoadBoard(file)
     pctl = PLOT_CONTROLLER(board)
     popt = pctl.GetPlotOptions()
     popt.SetOutputDirectory(abspath(hash_dir))  # abspath: Otherwise it will be relative to the file
     # Options
-    popt.SetPlotFrameRef(False)
+    popt.SetPlotFrameRef(kiri_mode)
     # KiCad 5 only
     if kicad_version_major == 5:
         popt.SetLineWidth(FromMM(0.35))
@@ -141,30 +152,44 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     popt.SetPlotViaOnMaskLayer(True)
     popt.SetSubtractMaskFromSilk(False)
 
+    if kiri_mode:
+        flavors = 1
+        extension = 'svg'
+        plot_format = PLOT_FORMAT_SVG
+        dir_name = hash_dir+sep+'_KIRI_'+sep+'pcb'
+        makedirs(dir_name, exist_ok=True)
+        file_pattern = dir_name+sep+'layer-%02d%s.'+extension
+    else:
+        flavors = 2
+        extension = 'pdf'
+        plot_format = PLOT_FORMAT_PDF
+        file_pattern = hash_dir+sep+'%d%s.'+extension
+
     # Plot all used layers to PDF files
-    for scaled in range(2):
+    for scaled in range(flavors):
         # We create 2 versions: one with autoscale and the other without it
         # If the BBox is the same we use the scaled one, otherwise we use the non-scaled
+        sc_id = ''
         if scaled:
             popt.SetAutoScale(True)
             popt.SetScale(0)
-            sc_id = ''
         else:
             popt.SetAutoScale(False)
             popt.SetScale(1)
-            sc_id = '_1'
+            if not kiri_mode:
+                sc_id = '_1'
         for i, layer in wanted_layers.items():
             if i not in layer_names:
                 # This layer was removed, don't plot it
                 continue
             layer_rep = layer.replace('.', '_')
-            name_pdf_kicad = '{}{}{}-{}.pdf'.format(hash_dir, sep, file_no_ext, layer_rep)
-            name_pdf = '{}{}{}{}.pdf'.format(hash_dir, sep, i, sc_id)
+            name_pdf_kicad = '{}{}{}-{}.{}'.format(hash_dir, sep, file_no_ext, layer_rep, extension)
+            name_pdf = file_pattern % (i, sc_id)
             # Create the PDF, or use a cached version
             if not isfile(name_pdf):
                 logger.info('Plotting %s layer' % layer)
                 pctl.SetLayer(i)
-                pctl.OpenPlotfile(layer, PLOT_FORMAT_PDF, layer)
+                pctl.OpenPlotfile(layer, plot_format, layer)
                 pctl.PlotLayer()
                 pctl.SetLayer(Edge_Cuts)
                 pctl.PlotLayer()
@@ -173,6 +198,8 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
                     logger.error('Failed to plot '+name_pdf_kicad)
                     exit(FAILED_TO_PLOT)
                 rename(name_pdf_kicad, name_pdf)
+                if kiri_mode:
+                    compress_svg(name_pdf)
 
             else:
                 logger.debug('Using cached {} layer'.format(layer))
@@ -180,7 +207,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
                 layer_name = layer_names[i]
                 if layer_name != layer:
                     layer_names[i] = '{} ({})'.format(layer_name, layer)
-    return WriteBBox(board, hash_dir)
+    return kiri_mode or WriteBBox(board, hash_dir)
 
 
 def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
@@ -207,10 +234,12 @@ def svg2png(svg_file, png_file):
     run_command(cmd)
 
 
-def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
+def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode):
     """ Plot the schematic using SVG files so we get separated files with correct names.
         Then convert all the pages to PNGs.
         This function is used only when all pages are requested """
+    if kiri_mode:
+        hash_dir += sep+'_KIRI_'+sep+'sch'
     pattern_svgs = hash_dir+sep+file_no_ext+'*.svg'
     pattern_pngs = hash_dir+sep+SCHEMATIC_SVG_BASE_NAME+'*.png'
     files = glob(pattern_pngs)
@@ -219,24 +248,41 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
         svgs = glob(pattern_svgs)
         if not svgs:
             logger.info('Plotting the schematic')
-            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--no_frame', '--all_pages', file,
-                   hash_dir]
+            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--all_pages']
+            if not kiri_mode:
+                cmd.append('--no_frame')
+            cmd.extend([file, hash_dir])
             run_command(cmd)
         files = glob(pattern_svgs)
         if not files:
             logger.error('Failed to plot %s' % file)
             exit(FAILED_TO_PLOT)
-        # Convert the files to PNG
-        # Also rename the files to make independent of the project name
-        len_file_no_ext = len(file_no_ext)
-        for f in files:
-            dname = dirname(f)
-            name = splitext(basename(f))
-            if name[0].startswith(file_no_ext):
-                svg2png(f, dname+sep+SCHEMATIC_SVG_BASE_NAME+name[0][len_file_no_ext:]+'.png')
-            else:
-                logger.warning('Unexpected file `{}`'.format(f))
-        files = glob(pattern_pngs)
+        if kiri_mode:
+            # Fix the file names
+            # Remove the "PROJECT-" part
+            prefix = file_no_ext+'-'
+            l_prefix = len(prefix)
+            for f in files:
+                name = basename(f)
+                dir = dirname(f)
+                if name.startswith(prefix):
+                    new_name = dir+sep+name[l_prefix:]
+                    rename(f, new_name)
+                    compress_svg(new_name)
+                else:
+                    compress_svg(f)
+        else:
+            # Convert the files to PNG
+            # Also rename the files to make independent of the project name
+            len_file_no_ext = len(file_no_ext)
+            for f in files:
+                dname = dirname(f)
+                name = splitext(basename(f))
+                if name[0].startswith(file_no_ext):
+                    svg2png(f, dname+sep+SCHEMATIC_SVG_BASE_NAME+name[0][len_file_no_ext:]+'.png')
+                else:
+                    logger.warning('Unexpected file `{}`'.format(f))
+            files = glob(pattern_pngs)
     else:
         logger.debug('Using cached schematic')
     # Remove the "Schematic_all" entry
@@ -249,14 +295,14 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names):
             layer_names[name] = c
 
 
-def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all):
+def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode):
     if svg_mode:
-        GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names)
+        GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode)
     else:
         GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all)
 
 
-def GenImages(file, file_hash, all):
+def GenImages(file, file_hash, all, kiri_mode=False):
     # Check if we have a valid cache
     hash_dir = cache_dir+sep+file_hash
     logger.debug('Cache for {} will be {}'.format(file, hash_dir))
@@ -267,13 +313,13 @@ def GenImages(file, file_hash, all):
 
     # Read the layer names from the file
     if is_pcb:
-        layer_names, wanted_layers = load_layer_names(file, hash_dir)
+        layer_names, wanted_layers = load_layer_names(file, hash_dir, kiri_mode)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
-        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers)
+        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode)
     else:
         layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
-        GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all)
+        GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode)
         # No BBox needed
         res = True
     return layer_names, res
@@ -544,15 +590,18 @@ def load_cached_layers(layers_file):
     return layer_names, name_to_id
 
 
-def save_layers_to_cache(layers_file, all_layers):
-    makedirs(dirname(layers_file), exist_ok=True)
+def save_layers_to_cache(layers_file, all_layers, kiri_mode):
+    dname = dirname(layers_file)
+    makedirs(dname, exist_ok=True)
+    if kiri_mode:
+        return
     with open(layers_file, 'wt') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(('Layer ID', 'Layer name', 'User name'))
         writer.writerows(all_layers)
 
 
-def load_layers_from_pcb(pcb_file, layers_file):
+def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
     layer_names = {}
     name_to_id = {}
     all_layers = []
@@ -593,17 +642,17 @@ def load_layers_from_pcb(pcb_file, layers_file):
             else:
                 if re.search(r'\s+\(layers', line):
                     collect_layers = True
-    save_layers_to_cache(layers_file, all_layers)
+    save_layers_to_cache(layers_file, all_layers, kiri_mode)
     return layer_names, name_to_id
 
 
-def load_layer_names(pcb_file, hash_dir):
+def load_layer_names(pcb_file, hash_dir, kiri_mode):
     # Check if this is cached
     layers_file = hash_dir+sep+'layers.csv'
     if isfile(layers_file):
         layer_names, name_to_id = load_cached_layers(layers_file)
     else:
-        layer_names, name_to_id = load_layers_from_pcb(pcb_file, layers_file)
+        layer_names, name_to_id = load_layers_from_pcb(pcb_file, layers_file, kiri_mode)
     if layer_list and not is_exclude:
         wanted_layers = {}
         for la in layer_list:
@@ -650,9 +699,11 @@ if __name__ == '__main__':
     parser.add_argument('--fuzz', help='Color tolerance for diff stats mode [%(default)s]', type=int, choices=range(0, 101),
                         default=5, metavar='[0-100]')
     parser.add_argument('--keep_pngs', help="Don't remove the individual pages", action='store_true')
+    parser.add_argument('--kiri_mode', help="Generate files compatible with KiRi", action='store_true')
     group.add_argument('--layers', help='Process layers in file (one layer per line)', type=str)
     parser.add_argument('--new_file_hash', help='Use this hash for NEW_FILE', type=str)
     parser.add_argument('--no_reader', help="Don't open the PDF reader", action='store_false')
+    parser.add_argument('--no_scour', help="Don't use scour even when available", action='store_true')
     parser.add_argument('--no_exist_check', help="Don't check if files exists, must specify the cache hash",
                         action='store_true')
     parser.add_argument('--old_file_hash', help='Use this hash for OLD_FILE', type=str)
@@ -694,6 +745,7 @@ if __name__ == '__main__':
             logger.error('No pdftoppm or ghostscript command, install poppler-utils or ghostscript')
             exit(MISSING_TOOLS)
         use_poppler = False
+    use_scour = not args.no_scour and which('scour') is not None
     if args.no_reader and which('xdg-open') is None:
         logger.warning('No xdg-open command, install xdg-utils. Disabling the PDF viewer.')
         args.no_reader = False
@@ -784,7 +836,7 @@ if __name__ == '__main__':
             logger.warning("The `rsvg-convert` tool isn't installed:")
             logger.warning("- If the number of pages changed the process will be aborted.")
 
-    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages)
+    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.kiri_mode)
     if args.only_cache:
         logger.info('{} SHA1 is {}'.format(old_file, old_file_hash))
         exit(0)
