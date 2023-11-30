@@ -18,7 +18,7 @@ jobs:
     container: setsoft/kicad_auto_test:ki7
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
