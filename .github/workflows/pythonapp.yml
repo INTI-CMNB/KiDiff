@@ -15,7 +15,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: setsoft/kicad_auto_test:ki6
+    container: setsoft/kicad_auto_test:ki7
 
     steps:
     - uses: actions/checkout@v2
@@ -25,7 +25,7 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings.
         flake8 . --count --exit-zero --statistics
-    - name: Test KiCad 6
+    - name: Test KiCad 7
       shell: bash
       run: |
         make test_server
