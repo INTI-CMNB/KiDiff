@@ -258,19 +258,8 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
             logger.error('Failed to plot %s' % file)
             exit(FAILED_TO_PLOT)
         if kiri_mode:
-            # Fix the file names
-            # Remove the "PROJECT-" part
-            prefix = file_no_ext+'-'
-            l_prefix = len(prefix)
             for f in files:
-                name = basename(f)
-                dir = dirname(f)
-                if name.startswith(prefix):
-                    new_name = dir+sep+name[l_prefix:]
-                    rename(f, new_name)
-                    compress_svg(new_name)
-                else:
-                    compress_svg(f)
+                compress_svg(f)
         else:
             # Convert the files to PNG
             # Also rename the files to make independent of the project name
