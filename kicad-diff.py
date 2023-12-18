@@ -452,7 +452,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
     all_layers = {}
     all_layers.update(layers_old)
     all_layers.update(layers_new)
-    skipped = 0
+    skipped = []
     for i in sorted(all_layers.keys()):
         if svg_mode:
             # Multisheet schematic
@@ -496,7 +496,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
             if inc:
                 files.append(diff_name)
             else:
-                skipped = skipped+1
+                skipped.append(diff_name)
     # Check if we skipped all
     if len(files) == 1 and skipped:
         files.append(create_no_diff(output_dir))
@@ -524,7 +524,7 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
         rename(output_pdf, out_name)
     # Remove the individual PNGs
     if not args.keep_pngs:
-        for f in files[1:-1]:
+        for f in files[1:-1]+skipped:
             remove(f)
     return out_name
 
