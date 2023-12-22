@@ -42,7 +42,8 @@ from hashlib import sha1
 import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname
 from os import makedirs, rename, remove
-from pcbnew import LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, PLOT_FORMAT_SVG, Edge_Cuts, GetBuildVersion, ToMM
+from pcbnew import (LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, PLOT_FORMAT_SVG, Edge_Cuts, GetBuildVersion, ToMM,
+                    ZONE_FILLER)
 import pcbnew
 import re
 import shlex
@@ -133,7 +134,7 @@ def compress_svg(name):
     rename(tmp, name)
 
 
-def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode):
+def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones_ops):
     # Setup the KiCad plotter
     board = LoadBoard(file)
     pctl = PLOT_CONTROLLER(board)
@@ -151,6 +152,14 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     popt.SetSkipPlotNPTH_Pads(False)
     popt.SetPlotViaOnMaskLayer(True)
     popt.SetSubtractMaskFromSilk(False)
+
+    if zones_ops != 'none':
+        zones = board.Zones()
+        if zones_ops == 'fill':
+            ZONE_FILLER(board).Fill(zones)
+        elif zones_ops == 'unfill':
+            for z in zones:
+                z.UnFill()
 
     if kiri_mode:
         flavors = 1
@@ -291,7 +300,7 @@ def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_m
         GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all)
 
 
-def GenImages(file, file_hash, all, kiri_mode=False):
+def GenImages(file, file_hash, all, zones, kiri_mode=False):
     # Check if we have a valid cache
     hash_dir = cache_dir+sep+file_hash
     logger.debug('Cache for {} will be {}'.format(file, hash_dir))
@@ -305,7 +314,7 @@ def GenImages(file, file_hash, all, kiri_mode=False):
         layer_names, wanted_layers = load_layer_names(file, hash_dir, kiri_mode)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
-        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode)
+        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones)
     else:
         layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
         GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode)
@@ -706,6 +715,8 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', action='version', version='%(prog)s '+__version__+' - ' +
                         __copyright__+' - License: '+__license__)
+    parser.add_argument('--zones', help='Un/Fill zones before creating the images', type=str, choices=('fill', 'unfill', 'none'),
+                        default='none')
 
     args = parser.parse_args()
 
@@ -825,11 +836,11 @@ if __name__ == '__main__':
             logger.warning("The `rsvg-convert` tool isn't installed:")
             logger.warning("- If the number of pages changed the process will be aborted.")
 
-    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.kiri_mode)
+    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.zones, args.kiri_mode)
     if args.only_cache:
         logger.info('{} SHA1 is {}'.format(old_file, old_file_hash))
         exit(0)
-    layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages)
+    layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages, args.zones)
 
     zero_size = (0, 0, 0, 0)
     changed = bbox_old != bbox_new and bbox_old != zero_size and bbox_new != zero_size
