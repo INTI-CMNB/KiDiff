@@ -1,4 +1,4 @@
-kidiff (2.5.1-1) UNRELEASED; urgency=medium
+kidiff (2.5.1-1) stable; urgency=medium
 
   * Added option to un/fill zones
 
