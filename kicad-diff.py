@@ -39,8 +39,9 @@ import atexit
 import csv
 from glob import glob
 from hashlib import sha1
+import json
 import logging
-from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname
+from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname, getmtime
 from os import makedirs, rename, remove
 from pcbnew import (LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, PLOT_FORMAT_SVG, Edge_Cuts, GetBuildVersion, ToMM,
                     ZONE_FILLER)
@@ -71,6 +72,7 @@ OLD_INVALID = 11
 NEW_INVALID = 12
 NOTHING_TO_COMPARE = 13
 kicad_version_major = kicad_version_minor = kicad_version_patch = 0
+cur_pcb_ops = cur_sch_ops = None
 is_pcb = True
 use_poppler = True
 # Compress SVG files using scour (KiRi mode)
@@ -134,6 +136,27 @@ def compress_svg(name):
     rename(tmp, name)
 
 
+def GetOpsName(name):
+    return dirname(name)+sep+'.'+basename(name)+'.json'
+
+
+def WriteOptions(name, ops):
+    name_ops = GetOpsName(name)
+    logger.debug('Writing options used for `{}` as `{}` ({})'.format(name, name_ops, ops))
+    with open(name_ops, 'wt') as f:
+        f.write(json.dumps(ops))
+
+
+def CheckOptions(name, cur_ops):
+    name_ops = GetOpsName(name)
+    if not isfile(name_ops):
+        logger.debug('No options for cache entry: '+name)
+        return False
+    res = json.load(open(name_ops, 'rt')) == cur_ops
+    logger.debug('Options for cache entry `{}` are the same as current: {}'.format(name, res))
+    return res
+
+
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones_ops):
     # Setup the KiCad plotter
     board = LoadBoard(file)
@@ -195,7 +218,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
             name_pdf_kicad = '{}{}{}-{}.{}'.format(hash_dir, sep, file_no_ext, layer_rep, extension)
             name_pdf = file_pattern % (i, sc_id)
             # Create the PDF, or use a cached version
-            if not isfile(name_pdf):
+            if not CheckOptions(name_pdf, cur_pcb_ops) or not isfile(name_pdf):
                 logger.info('Plotting %s layer' % layer)
                 pctl.SetLayer(i)
                 pctl.OpenPlotfile(layer, plot_format, layer)
@@ -209,7 +232,7 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
                 rename(name_pdf_kicad, name_pdf)
                 if kiri_mode:
                     compress_svg(name_pdf)
-
+                WriteOptions(name_pdf, cur_pcb_ops)
             else:
                 logger.debug('Using cached {} layer'.format(layer))
             if scaled:
@@ -221,9 +244,10 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
 
 def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
     """ Plot the schematic in one PDF file """
-    name_pdf = '{}{}{}.pdf'.format(hash_dir, sep, layer_names[0])
+    name_pdf = hash_dir+sep+layer_names[0]+'.pdf'
+    name_ops = hash_dir+sep+'options'
     # Create the PDF, or use a cached version
-    if not isfile(name_pdf):
+    if not CheckOptions(name_ops, cur_sch_ops) or not isfile(name_pdf):
         logger.info('Plotting the schematic')
         cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf]
         if all:
@@ -234,6 +258,7 @@ def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
         if not isfile(name_pdf):
             logger.error('Failed to plot %s' % name_pdf)
             exit(FAILED_TO_PLOT)
+        WriteOptions(name_ops, cur_sch_ops)
     else:
         logger.debug('Using cached schematic')
 
@@ -251,11 +276,14 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
         hash_dir += sep+'_KIRI_'+sep+'sch'
     pattern_svgs = hash_dir+sep+file_no_ext+'*.svg'
     pattern_pngs = hash_dir+sep+SCHEMATIC_SVG_BASE_NAME+'*.png'
+    name_ops = hash_dir+sep+'options'
     files = glob(pattern_pngs)
     # Create the PNG, or use a cached version
-    if not files:
+    ops_changed = not CheckOptions(name_ops, cur_sch_ops)
+    logger.error(f"ops_changed {ops_changed}")
+    if ops_changed or not files:
         svgs = glob(pattern_svgs)
-        if not svgs:
+        if ops_changed or not svgs:
             logger.info('Plotting the schematic')
             cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--all_pages']
             if not kiri_mode:
@@ -281,6 +309,7 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
                 else:
                     logger.warning('Unexpected file `{}`'.format(f))
             files = glob(pattern_pngs)
+        WriteOptions(name_ops, cur_sch_ops)
     else:
         logger.debug('Using cached schematic')
     # Remove the "Schematic_all" entry
@@ -339,12 +368,13 @@ def run_command(command):
 
 def pdf2png(base_name, blank=False, ref=None):
     source = base_name+'.pdf' if not blank else ref+'.pdf'
+    source_mtime = getmtime(source) if isfile(source) else 0
     dest1 = base_name+'.png'
     destm = base_name+'-0.png'
-    if isfile(dest1):
+    if isfile(dest1) and getmtime(dest1) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return [dest1]
-    if isfile(destm):
+    if isfile(destm) and getmtime(dest1) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return sorted(glob(base_name+'-*.png'))
     if isfile(source):
@@ -835,6 +865,9 @@ if __name__ == '__main__':
         if not svg_mode:
             logger.warning("The `rsvg-convert` tool isn't installed:")
             logger.warning("- If the number of pages changed the process will be aborted.")
+
+    cur_sch_ops = {'KiCad': kicad_version}
+    cur_pcb_ops = {'KiCad': kicad_version, 'zones': args.zones}
 
     layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.zones, args.kiri_mode)
     if args.only_cache:
