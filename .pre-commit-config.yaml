@@ -4,7 +4,7 @@ exclude: ^(\.[^/]*cache/.*|.*/_user.py)$
 repos:
   - repo: https://github.com/executablebooks/mdformat
     # Do this before other tools "fixing" the line endings
-    rev: 0.7.14
+    rev: 0.7.17
     hooks:
       - id: mdformat
         name: Format Markdown
@@ -21,8 +21,9 @@ repos:
           - mdformat-black
           - mdformat-web
           - mdformat-gfm
+          - setuptools
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.5.0
     hooks:
       - id: no-commit-to-branch
         args: [--branch, main]
@@ -43,7 +44,7 @@ repos:
       - id: check-case-conflict
       # - id: check-toml
   - repo: https://github.com/adrienverge/yamllint.git
-    rev: v1.26.3
+    rev: v1.33.0
     hooks:
       - id: yamllint
         args:
@@ -54,8 +55,10 @@ repos:
     rev: v6.2.1
     hooks:
       - id: beautysh
+        additional_dependencies:
+          - setuptools
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.34.0
+    rev: v3.15.0
     hooks:
       - id: pyupgrade
 #  - repo: https://github.com/psf/black
@@ -94,7 +97,7 @@ repos:
 #    hooks:
 #      - id: isort
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.1.0
+    rev: v2.2.6
     hooks:
       - id: codespell
         args:
@@ -103,8 +106,8 @@ repos:
           - --ignore-words-list=hass,master
           - --skip="./.*"
           - --quiet-level=2
-#  - repo: https://github.com/pre-commit/mirrors-pylint
-#    rev: v3.0.0a5
+#  - repo: https://github.com/pylint-dev/pylint
+#    rev: v3.0.3
 #    hooks:
 #      - id: pylint
 #        args:
