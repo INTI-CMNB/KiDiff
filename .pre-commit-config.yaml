@@ -10,6 +10,7 @@ repos:
         name: Format Markdown
         entry: mdformat  # Executable to run, with fixed options
         language: python
+        exclude: CHANGELOG.md
         types: [markdown]
         args: [--wrap, '78', --number]
         additional_dependencies:
@@ -57,10 +58,10 @@ repos:
       - id: beautysh
         additional_dependencies:
           - setuptools
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
+#  - repo: https://github.com/asottile/pyupgrade
+#    rev: v3.15.0
+#    hooks:
+#      - id: pyupgrade
 #  - repo: https://github.com/psf/black
 #    rev: 22.6.0
 #    hooks:
