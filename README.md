@@ -15,12 +15,12 @@ output directory.
 For SCHs the process is similar, but using KiAuto. Note that one schematic is
 compared at a time. The `--all_pages` option allows comparing multiple pages.
 In this case adding or removing pages is only supported when the
-`rsvg-convert` tool is available. Also note that this can't be done by the
-git plug-in because git extracts only the file you want to compare.
-Consult the advanced use explanation.
+`rsvg-convert` tool is available. Also note that this can't be done by the git
+plug-in because git extracts only the file you want to compare. Consult the
+advanced use explanation.
 
 The default resolution for the images is 150 DPI. It can be increased for
-better images, at the cost of (exponetially) longer execution times. You can
+better images, at the cost of (exponentially) longer execution times. You can
 provide a smaller resolution for faster processing. For high resolution you
 could need to configure the ImageMagick limits. Consult the 'identify -list
 resource' command.
@@ -52,7 +52,9 @@ In a Debian/Ubuntu system you'll first need to add this
 $ sudo apt-get install kidiff`
 ```
 
-Arch Linux can install [kicad-pcb-diff](https://aur.archlinux.org/packages/kidiff) using the AUR repository:
+Arch Linux can install
+[kicad-pcb-diff](https://aur.archlinux.org/packages/kidiff) using the AUR
+repository:
 
 ```bash
 $ yay -S kidiff
@@ -113,8 +115,7 @@ $ git --no-pager diff XXXXXX.kicad_pcb
 ## PDF conversion policy
 
 On some systems (i.e. Debian) ImageMagick disables PDF manipulation in its
-*policy.xml* configuration file.
-Comment or remove lines like this:
+*policy.xml* configuration file. Comment or remove lines like this:
 
 ```
 <policy domain="coder" rights="none" pattern="PDF" />
@@ -139,8 +140,9 @@ Shows a detailed list of the available options.
 
 ## --all_pages
 
-Compare all pages for a schematic. Note that the tool doesn't currently support
-adding or removing sheets, both documents must have the same ammount of pages.
+Compare all pages for a schematic. Note that the tool doesn't currently
+support adding or removing sheets, both documents must have the same amount of
+pages.
 
 ## --cache_dir
 
@@ -151,11 +153,12 @@ PDFs.
 ## --diff_mode
 
 Selects the mechanism used to represent the differences:
-- **red_green** this is the default mode. Here we try to mimic the colored text
-  mode diff tools. Things added to the *old* file are reprsented in green and
-  things removed in red.
+
+- **red_green** this is the default mode. Here we try to mimic the colored
+  text mode diff tools. Things added to the *old* file are represented in
+  green and things removed in red.
 - **stats** in this mode all difference are represented in red. We compute the
-  ammount of pixels that are different, you can use this value to determine if
+  amount of pixels that are different, you can use this value to determine if
   the changes are significant. See the `--fuzz` and `--threshold` options.
 
 ## --exclude
@@ -201,14 +204,14 @@ the colors. Enlarge it if you want to ignore bigger differences in the colors.
 
 ## --keep_pngs
 
-Don't remove the individual PNGs. Complements `--output_dir`.
-They are usually removed as soon as we get the output PDF.
+Don't remove the individual PNGs. Complements `--output_dir`. They are usually
+removed as soon as we get the output PDF.
 
 ## --layers
 
-Specifies the name of a file containing a list of layers to be included.
-This option works similar to `--exclude` but we process only the layers
-indicated here.
+Specifies the name of a file containing a list of layers to be included. This
+option works similar to `--exclude` but we process only the layers indicated
+here.
 
 Important: when this list is only composed by layer numbers KiDiff skips any
 check and uses this list of layers, even if they aren't defined in any of the
@@ -239,8 +242,8 @@ file.
 
 ## --output_dir
 
-Five seconds after invoking the PDF viewer the output files are removed. If you
-want to keep them for later review, or five seconds isn't enough for your
+Five seconds after invoking the PDF viewer the output files are removed. If
+you want to keep them for later review, or five seconds isn't enough for your
 system, you can specify a directory to store the generated files.
 
 Note: individual PNGs are always removed, consult `--keep_pngs`
@@ -266,9 +269,9 @@ Consult ImageMagick documentation in order to increase them.
 
 ## --threshold
 
-In the *stats* mode this option can make KiDiff to return an error value if the
-difference is bigger than the specified threshold. Indicating 0 means that we
-don't look for errors, KiDiff always returns 0.
+In the *stats* mode this option can make KiDiff to return an error value if
+the difference is bigger than the specified threshold. Indicating 0 means that
+we don't look for errors, KiDiff always returns 0.
 
 ## -v/--verbose
 
@@ -290,20 +293,21 @@ must specify a valid `cache_dir`. You should also take note of the hash used
 by `kicad-diff.py`, or just provide one using the `--old_file_hash`.
 
 You can then compare two files using the cached images, you just need to
-provide the hashes you want to compare. The *old_file* and *new_file* won't
-be used.
+provide the hashes you want to compare. The *old_file* and *new_file* won't be
+used.
 
 # Similar tools
 
 ## KiCad-Diff
 
-[KiCad-Diff](https://github.com/Gasman2014/KiCad-Diff) is a diff tool for PCBs,
-is more oriented to GUI use. It has support not only for `git` but also for
-`fossil` and `svn`. You can navigate the diffs and get information about added
-or removed items, all using a browser. And is fast (all is handled using SVGs).
+[KiCad-Diff](https://github.com/Gasman2014/KiCad-Diff) is a diff tool for
+PCBs, is more oriented to GUI use. It has support not only for `git` but also
+for `fossil` and `svn`. You can navigate the diffs and get information about
+added or removed items, all using a browser. And is fast (all is handled using
+SVGs).
 
 It doesn't support schematics, can't be directly used as a git plug-in
-(perhaps using some wrapper), can't meassure the ammout of difference and
+(perhaps using some wrapper), can't measure the ammout of difference and
 doesn't generate a file to see the differences (only browsable).
 
 # Credits and notes

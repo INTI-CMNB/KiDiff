@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # Copyright (c) 2020-2022 Salvador E. Tropea
-# Copyright (c) 2020-2022 Instituto Nacional de Tecnologïa Industrial
+# Copyright (c) 2020-2022 Instituto Nacional de Tecnología Industrial
 # License: GPL-2.0
 # Project: KiCad Diff
 """
@@ -41,7 +40,7 @@ def CheckAttributes():
     if not isfile(git_attributes):
         logger.debug('No '+git_attributes)
         return False
-    with open(git_attributes, "r") as attr_file:
+    with open(git_attributes) as attr_file:
         for line in attr_file:
             if re.match(r'^\*.kicad_pcb\s+diff', line):
                 attr_file.close()
@@ -53,7 +52,7 @@ def CheckCommand():
     if not isfile(git_config):
         logger.debug('No '+git_config)
         return False
-    with open(git_config, "r") as cfg_file:
+    with open(git_config) as cfg_file:
         for line in cfg_file:
             if re.match(r'^\[diff\s+\"kicad_diff\"', line):
                 cfg_file.close()

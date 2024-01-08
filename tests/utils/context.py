@@ -352,7 +352,7 @@ class TestContext(object):
                self.get_out_path(gen),
                self.get_out_path('gen-%d.png')]
         subprocess.check_call(cmd)
-        # Chek number of pages
+        # Check number of pages
         ref_pages = glob(self.get_out_path('ref-*.png'))
         gen_pages = glob(self.get_out_path('gen-*.png'))
         logging.debug('Pages {} vs {}'.format(len(gen_pages), len(ref_pages)))
@@ -381,7 +381,7 @@ class TestContext(object):
 
     @contextmanager
     def start_kicad(self, cmd, cfg):
-        """ Context manager to run a command under a virual X server.
+        """ Context manager to run a command under a virtual X server.
             Use like this: with context.start_kicad('command'): """
         with recorded_xvfb(cfg):
             if isinstance(cmd, str):

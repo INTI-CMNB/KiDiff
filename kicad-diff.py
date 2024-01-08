@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# -*- coding: utf-8 -*-
 # Copyright (c) 2020-2023 Salvador E. Tropea
 # Copyright (c) 2020-2023 Instituto Nacional de Tecnologïa Industrial
 # License: GPL-2.0
@@ -18,7 +17,7 @@ removed as soon as the job is finished. You can cache the layers PDFs
 specifying a cache directory and keep the resulting diff images specifying an
 output directory.
 The default resolution for the images is 150 DPI. It can be increased for
-better images, at the cost of (exponetially) longer execution times. You can
+better images, at the cost of (exponentially) longer execution times. You can
 provide a smaller resolution for faster processing. For high resolution you
 could need to configure the ImageMagick limits. Consult the 'identify -list
 resource' command.
@@ -634,7 +633,7 @@ def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
     name_to_id = {}
     all_layers = []
     logger.debug('Loading layers from PCB '+pcb_file)
-    with open(pcb_file, "r") as file_file:
+    with open(pcb_file) as file_file:
         collect_layers = False
         re_layer = re.compile(r'\s+\((\d+)\s+(\S+)')
         re_layer_user = re.compile(r'\s+\((\d+)\s+(\S+)\s+user\s+"([^"]+)"')
@@ -700,7 +699,7 @@ def thre_type(astr, min=0, max=1e6):
     if min <= value <= max:
         return value
     else:
-        raise argparse.ArgumentTypeError('value not in range %s-%s' % (min, max))
+        raise argparse.ArgumentTypeError('value not in range {}-{}'.format(min, max))
 
 
 def get_layer(line):

@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Option to skip pages without diff
 
 ### Fixed
-- Problems when using the plug-in and comparing uncommited stuff.
+- Problems when using the plug-in and comparing uncommitted stuff.
 
 
 ## [2.4.1] - 2022-08-31
@@ -124,5 +124,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2020-03-03
 ### Added
 - Initial release
-
-

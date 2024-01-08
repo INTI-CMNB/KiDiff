@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2022 Salvador E. Tropea
 # Copyright (c) 2022 Instituto Nacional de Tecnologïa Industrial
 # License: GPL-2.0
