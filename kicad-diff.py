@@ -163,10 +163,12 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     popt = pctl.GetPlotOptions()
     popt.SetOutputDirectory(abspath(hash_dir))  # abspath: Otherwise it will be relative to the file
     # Options
-    popt.SetPlotFrameRef(kiri_mode)
     # KiCad 5 only
     if kicad_version_major == 5:
         popt.SetLineWidth(FromMM(0.35))
+        popt.SetPlotFrameRef(False)
+    else:
+        popt.SetPlotFrameRef(kiri_mode)
     popt.SetMirror(False)
     popt.SetUseGerberAttributes(True)
     SetExcludeEdgeLayer(popt, False, board.GetLayerID('Edge.Cuts'))

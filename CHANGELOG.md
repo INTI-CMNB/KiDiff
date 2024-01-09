@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Smarter cache: changing KiCad or --zones option invalidates the cache
 
+### Fixed
+* KiRi mode for KiCad 5:
+  - Plotting the worksheet makes KiCad crash, disabled
 
 ## [2.5.1] - 2024-01-03
 ### Added
