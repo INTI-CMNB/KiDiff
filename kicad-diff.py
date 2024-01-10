@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# Copyright (c) 2020-2023 Salvador E. Tropea
-# Copyright (c) 2020-2023 Instituto Nacional de Tecnologïa Industrial
+# Copyright (c) 2020-2024 Salvador E. Tropea
+# Copyright (c) 2020-2024 Instituto Nacional de Tecnología Industrial
 # License: GPL-2.0
 # Project: KiCad Diff
 # Adapted from: https://github.com/obra/kicad-tools
@@ -25,10 +25,10 @@ For the SCHs we use KiAuto.
 
 """
 __author__ = 'Salvador E. Tropea'
-__copyright__ = 'Copyright 2020-2023, INTI/'+__author__
+__copyright__ = 'Copyright 2020-2024, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.5.2'
+__version__ = '2.5.3'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -51,7 +51,7 @@ from shutil import rmtree, which, copy2
 from struct import unpack
 from subprocess import call, PIPE, run, STDOUT, CalledProcessError
 from sys import exit
-from tempfile import mkdtemp
+from tempfile import mkdtemp, NamedTemporaryFile
 import time
 
 # Exit error codes
@@ -451,6 +451,45 @@ def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resoluti
     return include
 
 
+def create_diff_stereo_colored(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
+    """ A more complex version of create_diff_stereo where we can control the colors """
+    wn, hn = png_size(new_name)
+    wo, ho = png_size(old_name)
+    if wn != wo or hn != ho:
+        extent = ' -extent {}x{}'.format(max(wn, wo), max(hn, ho))
+        extra_name = ' [diff page size]'
+    else:
+        extra_name = extent = ''
+    with NamedTemporaryFile(mode='w', prefix='removed', suffix='.png', delete=False) as f:
+        removed = f.name
+    with NamedTemporaryFile(mode='w', prefix='added', suffix='.png', delete=False) as f:
+        added = f.name
+    command = ['bash', '-c',
+               '( convert -threshold 50% "'+new_name+'"'+extent+' miff:- ;' +
+               '  convert -threshold 50% -negate "'+old_name+'"'+extent+' miff:- ) | ' +
+               r'convert - -compose darken -composite -negate -fill "'+args.removed_2color+'" ' +
+               ' -opaque black -transparent white "'+removed+'"']
+    run_command(command)
+    command = ['bash', '-c',
+               '( convert -threshold 50% -negate "'+new_name+'"'+extent+' miff:- ;' +
+               '  convert -threshold 50% "'+old_name+'"'+extent+' miff:- ) | ' +
+               r'convert - -compose darken -composite -negate -fill "'+args.added_2color+'" ' +
+               ' -opaque black -transparent white "'+added+'"']
+    run_command(command)
+    run_command(['convert', old_name, added, '-composite', removed, '-composite',
+                 '-font', 'helvetica', '-pointsize', font_size, '-draw',
+                 "text 10,"+font_size+" '"+adapt_name(name_layer)+extra_name+"'",
+                 diff_name])
+    include = True
+    if only_different:
+        res1 = run_command(['identify', '-format', '%k', added])
+        res2 = run_command(['identify', '-format', '%k', removed])
+        include = res1 == '2' and res2 == '2'
+    remove(added)
+    remove(removed)
+    return include
+
+
 def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer, only_different):
     wn, hn = png_size(new_name)
     wo, ho = png_size(old_name)
@@ -527,6 +566,9 @@ def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_differ
             if args.diff_mode == 'red_green':
                 inc = create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resolution, name_layer,
                                          only_different)
+            elif args.diff_mode == '2color':
+                inc = create_diff_stereo_colored(old_name, new_name, diff_name, font_size, layer, resolution,
+                                                 name_layer, only_different)
             else:
                 inc = create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution, name_layer,
                                        only_different)
@@ -718,10 +760,11 @@ if __name__ == '__main__':
 
     parser.add_argument('old_file', help='Original file (PCB/SCH)')
     parser.add_argument('new_file', help='New file (PCB/SCH)')
+    parser.add_argument('--added_2color', help='Color used for added stuff in 2color mode', type=str, default='green')
     parser.add_argument('--all_pages', help='Compare all the schematic pages', action='store_true')
     parser.add_argument('--cache_dir', help='Directory to cache images', type=str)
     parser.add_argument('--diff_mode', help='How to compute the image difference [red_green]',
-                        choices=['red_green', 'stats'], default='red_green')
+                        choices=['red_green', 'stats', '2color'], default='red_green')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--exclude', help='Exclude layers in file (one layer per line)', type=str)
     parser.add_argument('--force_gs', help='Use Ghostscript even when Poppler is available', action='store_true')
@@ -740,6 +783,7 @@ if __name__ == '__main__':
     parser.add_argument('--only_different', help='Only include the pages with differences', action='store_true')
     parser.add_argument('--output_dir', help='Directory for the output file', type=str)
     parser.add_argument('--output_name', help='Name of the output diff', type=str, default='diff.pdf')
+    parser.add_argument('--removed_2color', help='Color used for removed stuff in 2color mode', type=str, default='red')
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
     parser.add_argument('--threshold', help='Error threshold for diff stats mode, 0 is no error [%(default)s]',
                         type=thre_type, default=0, metavar='[0-1000000]')

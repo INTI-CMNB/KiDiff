@@ -1,10 +1,16 @@
+kidiff (2.5.3-1) stable; urgency=medium
+
+  * Added new mode "2color" where you can control the added/removed colors
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Wed, 10 Jan 2024 09:54:13 -0300
+
 kidiff (2.5.2-1) stable; urgency=medium
 
   * Added Smarter cache: changing KiCad or --zones option invalidates the cache
   * Fixed KiRi mode for KiCad 5: Plotting the worksheet makes KiCad crash,
     disabled
 
- -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 04 Jan 2024 10:41:43 -0300
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 09 Jan 2024 10:41:43 -0300
 
 kidiff (2.5.1-1) stable; urgency=medium
 
