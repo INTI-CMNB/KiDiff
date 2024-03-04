@@ -83,7 +83,8 @@ find a Debian package in the releases section.
 
 ## Docker image
 
-You can find a docker image containing KiDiff and other KiCad tools [here](https://github.com/INTI-CMNB/kicad_auto).
+You can find a docker image containing KiDiff and other KiCad tools
+[here](https://github.com/INTI-CMNB/kicad_auto).
 
 ## Git plug-in
 
