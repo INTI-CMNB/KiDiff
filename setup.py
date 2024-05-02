@@ -1,7 +1,14 @@
 #!/usr/bin/python3
+import re
 from setuptools import setup, find_packages
-import importlib
-kidiff = importlib.import_module("kicad-diff")
+
+
+with open("kicad-diff.py", 'rt') as f:
+    txt = f.read()
+    version = re.search(r"__version__ = '(.*)'", txt).group(1)
+    author = re.search(r"__author__ = '(.*)'", txt).group(1)
+    email = re.search(r"__email__ = '(.*)'", txt).group(1)
+    url = re.search(r"__url__ = '(.*)'", txt).group(1)
 
 # Use the README.md as a long description.
 # Note this is also included in the MANIFEST.in
@@ -9,13 +16,13 @@ with open('README.md', encoding='utf-8') as f:
     long_description = '\n' + f.read()
 
 setup(name='kidiff',
-      version=kidiff.__version__,
+      version=version,
       description='KiCad PCB/SCH Diff',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      author=kidiff.__author__,
-      author_email=kidiff.__email__,
-      url=kidiff.__url__,
+      author=author,
+      author_email=email,
+      url=url,
       # Packages are marked using __init__.py
       packages=find_packages(),
       scripts=['kicad-diff-init.py', 'kicad-diff.py', 'kicad-git-diff.py'],
