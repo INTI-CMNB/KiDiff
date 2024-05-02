@@ -494,10 +494,10 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     wn, hn = png_size(new_name)
     wo, ho = png_size(old_name)
     if wn != wo or hn != ho:
-        extent = ' -extent {}x{}'.format(max(wn, wo), max(hn, ho))
+        # extent = ' -extent {}x{}'.format(max(wn, wo), max(hn, ho))
         extra_name = ' [diff page size]'
     else:
-        extra_name = extent = ''
+        extra_name = ''
     # Compare both
     cmd = ['compare',
            # Tolerate 5 % error in color (configurable)
@@ -790,8 +790,8 @@ if __name__ == '__main__':
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', action='version', version='%(prog)s '+__version__+' - ' +
                         __copyright__+' - License: '+__license__)
-    parser.add_argument('--zones', help='Un/Fill zones before creating the images', type=str, choices=('fill', 'unfill', 'none'),
-                        default='none')
+    parser.add_argument('--zones', help='Un/Fill zones before creating the images', type=str,
+                        choices=('fill', 'unfill', 'none'), default='none')
 
     args = parser.parse_args()
 
