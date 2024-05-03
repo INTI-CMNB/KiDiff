@@ -28,7 +28,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2024, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.5.3'
+__version__ = '2.5.4'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -159,6 +159,10 @@ def CheckOptions(name, cur_ops):
 def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones_ops):
     # Setup the KiCad plotter
     board = LoadBoard(file)
+    if hasattr(pcbnew, 'LAYER_HIDDEN_TEXT'):
+        # KiCad 8.0.2 crazyness: hidden text affects scaling, even when not plotted
+        # So a PRL can affect the plot mechanism
+        board.SetElementVisibility(pcbnew.LAYER_HIDDEN_TEXT, False)
     pctl = PLOT_CONTROLLER(board)
     popt = pctl.GetPlotOptions()
     popt.SetOutputDirectory(abspath(hash_dir))  # abspath: Otherwise it will be relative to the file

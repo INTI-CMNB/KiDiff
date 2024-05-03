@@ -1,3 +1,9 @@
+kidiff (2.5.4-1) stable; urgency=medium
+
+  * Hidden text workaround for KiCad 8.0.2
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Fri, 03 May 2024 12:54:59 -0300
+
 kidiff (2.5.3-1) stable; urgency=medium
 
   * Added new mode "2color" where you can control the added/removed colors
