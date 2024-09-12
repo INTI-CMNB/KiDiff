@@ -1,3 +1,9 @@
+kidiff (2.5.5-1) stable; urgency=medium
+
+  * Visible drill marks issue with KiCad 8.0.4
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 12 Sep 2024 10:13:07 -0300
+
 kidiff (2.5.4-1) stable; urgency=medium
 
   * Hidden text workaround for KiCad 8.0.2
