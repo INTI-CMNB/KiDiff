@@ -99,6 +99,14 @@ DEFAULT_LAYER_NAMES = {
     pcbnew.B_Fab: 'B.Fab',
 }
 SCHEMATIC_SVG_BASE_NAME = 'Schematic_root'
+if hasattr(pcbnew, 'DRILL_MARKS_NO_DRILL_SHAPE'):
+    NO_DRILL_SHAPE = pcbnew.DRILL_MARKS_NO_DRILL_SHAPE
+    SMALL_DRILL_SHAPE = pcbnew.DRILL_MARKS_SMALL_DRILL_SHAPE
+    FULL_DRILL_SHAPE = pcbnew.DRILL_MARKS_FULL_DRILL_SHAPE
+elif hasattr(pcbnew, 'PCB_PLOT_PARAMS'):
+    NO_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.NO_DRILL_SHAPE
+    SMALL_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.SMALL_DRILL_SHAPE
+    FULL_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.FULL_DRILL_SHAPE
 
 
 def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
@@ -225,10 +233,16 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
             # Create the PDF, or use a cached version
             if not CheckOptions(name_pdf, cur_pcb_ops) or not isfile(name_pdf):
                 logger.info('Plotting %s layer' % layer)
-                pctl.SetLayer(i)
+                # Plot the edge before, no drill marks (8.0.4 added them)
+                pctl.SetLayer(Edge_Cuts)
+                popt.SetDrillMarksType(NO_DRILL_SHAPE)
                 pctl.OpenPlotfile(layer, plot_format, layer)
                 pctl.PlotLayer()
-                pctl.SetLayer(Edge_Cuts)
+                # Plot the real layer, disable drill marks in silk screen (8.0.4 added them)
+                pctl.SetLayer(i)
+                logging.error(i)
+                logging.error(i > pcbnew.B_Cu)
+                popt.SetDrillMarksType(NO_DRILL_SHAPE if i > pcbnew.B_Cu else SMALL_DRILL_SHAPE)
                 pctl.PlotLayer()
                 pctl.ClosePlot()
                 if not isfile(name_pdf_kicad):
