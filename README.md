@@ -49,7 +49,7 @@ In a Debian/Ubuntu system you'll first need to add this
 [repo](https://set-soft.github.io/debian/) and then use:
 
 ```shell
-$ sudo apt-get install kidiff`
+$ sudo apt-get install kidiff
 ```
 
 Arch Linux can install
