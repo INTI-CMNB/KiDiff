@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# Copyright (c) 2020-2024 Salvador E. Tropea
-# Copyright (c) 2020-2024 Instituto Nacional de Tecnología Industrial
+# Copyright (c) 2020-2025 Salvador E. Tropea
+# Copyright (c) 2020-2025 Instituto Nacional de Tecnología Industrial
 # License: GPL-2.0
 # Project: KiCad Diff
 # Adapted from: https://github.com/obra/kicad-tools
@@ -25,10 +25,10 @@ For the SCHs we use KiAuto.
 
 """
 __author__ = 'Salvador E. Tropea'
-__copyright__ = 'Copyright 2020-2024, INTI/'+__author__
+__copyright__ = 'Copyright 2020-2025, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.5.5'
+__version__ = '2.5.6'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -107,6 +107,11 @@ elif hasattr(pcbnew, 'PCB_PLOT_PARAMS'):
     NO_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.NO_DRILL_SHAPE
     SMALL_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.SMALL_DRILL_SHAPE
     FULL_DRILL_SHAPE = pcbnew.PCB_PLOT_PARAMS.FULL_DRILL_SHAPE
+LA_KI8_2_KI9 = {0: 0, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12, 6: 14, 7: 16, 8: 18, 9: 20, 10: 22, 11: 24, 12: 26, 13: 28, 14: 30,
+                15: 32, 16: 34, 17: 36, 18: 38, 19: 40, 20: 42, 21: 44, 22: 46, 23: 48, 24: 50, 25: 52, 26: 54, 27: 56,
+                28: 58, 29: 60, 30: 62, 31: 2, 32: 11, 33: 9, 34: 15, 35: 13, 36: 7, 37: 5, 38: 3, 39: 1, 40: 17, 41: 19,
+                42: 21, 43: 23, 44: 25, 45: 27, 46: 29, 47: 31, 48: 33, 49: 35, 50: 39, 51: 41, 52: 43, 53: 45, 54: 47,
+                55: 49, 56: 51, 57: 53, 58: 55, 59: 37}
 
 
 def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
@@ -164,9 +169,8 @@ def CheckOptions(name, cur_ops):
     return res
 
 
-def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones_ops):
+def GenPCBImages(board, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones_ops):
     # Setup the KiCad plotter
-    board = LoadBoard(file)
     if hasattr(pcbnew, 'LAYER_HIDDEN_TEXT'):
         # KiCad 8.0.2 crazyness: hidden text affects scaling, even when not plotted
         # So a PRL can affect the plot mechanism
@@ -186,7 +190,8 @@ def GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_lay
     SetExcludeEdgeLayer(popt, False, board.GetLayerID('Edge.Cuts'))
     popt.SetUseAuxOrigin(False)
     popt.SetSkipPlotNPTH_Pads(False)
-    popt.SetPlotViaOnMaskLayer(True)
+    if kicad_version_major < 9:
+        popt.SetPlotViaOnMaskLayer(True)
     popt.SetSubtractMaskFromSilk(False)
 
     if zones_ops != 'none':
@@ -359,10 +364,14 @@ def GenImages(file, file_hash, all, zones, kiri_mode=False):
 
     # Read the layer names from the file
     if is_pcb:
+        board = LoadBoard(file)
+        # This code exposes the fails in KiCad API for tests/board_samples/kicad_8/light_control.kicad_pcb
+        # for la in board.GetEnabledLayers().Seq():
+        #     logger.debug(f'{la} -> {board.GetLayerName(la)} ({board.GetStandardLayerName(la)})')
         layer_names, wanted_layers = load_layer_names(file, hash_dir, kiri_mode)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
-        res = GenPCBImages(file, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones)
+        res = GenPCBImages(board, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones)
     else:
         layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
         GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode)
@@ -691,6 +700,8 @@ def save_layers_to_cache(layers_file, all_layers, kiri_mode):
 
 
 def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
+    # We get the layers from the PCB because BOARD.GetLayerName(id) and BOARD.GetStandardLayerName(id) returns the same
+    # even for files using the KiCad 5 names as user names
     layer_names = {}
     name_to_id = {}
     all_layers = []
@@ -699,6 +710,9 @@ def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
         collect_layers = False
         re_layer = re.compile(r'\s+\((\d+)\s+(\S+)')
         re_layer_user = re.compile(r'\s+\((\d+)\s+(\S+)\s+user\s+"([^"]+)"')
+        re_version = re.compile(r'\(version (\d+)\)')
+        version = None
+        convert_layers = False
         for line in file_file:
             if collect_layers:
                 z = re_layer.match(line)
@@ -708,8 +722,11 @@ def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
                     if lname[0] == '"':
                         lname = lname[1:-1]
                     lnum = res[0]
-                    logger.debug(lname+'->'+lnum)
                     ilnum = int(lnum)
+                    if convert_layers:
+                        ilnum = LA_KI8_2_KI9[ilnum]
+                        lnum = str(ilnum)
+                    logger.debug(lname+'->'+lnum)
                     name_to_id[lname] = ilnum
                     # Check if the user renamed this layer
                     z = re_layer_user.match(line)
@@ -729,6 +746,12 @@ def load_layers_from_pcb(pcb_file, layers_file, kiri_mode):
                     if re.search(r'^\s+\)$', line):
                         break
             else:
+                if not version:
+                    z = re_version.search(line)
+                    if z:
+                        version = int(z.group(1))
+                        logger.debug(f'PCB version {version}')
+                        convert_layers = version < 20241228 and kicad_version_major >= 9
                 if re.search(r'\s+\(layers', line):
                     collect_layers = True
     save_layers_to_cache(layers_file, all_layers, kiri_mode)
@@ -814,9 +837,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Fill the names for the inner layers
-    for i in range(1, 30):
-        name = 'In'+str(i)+'.Cu'
-        DEFAULT_LAYER_NAMES[pcbnew.In1_Cu+i-1] = name
+    if kicad_version_major >= 9:
+        for i in range(1, 30):
+            name = 'In'+str(i)+'.Cu'
+            DEFAULT_LAYER_NAMES[(i+1)*2] = name
+    else:
+        for i in range(1, 30):
+            name = 'In'+str(i)+'.Cu'
+            DEFAULT_LAYER_NAMES[pcbnew.In1_Cu+i-1] = name
 
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
