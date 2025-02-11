@@ -1,3 +1,9 @@
+kidiff (2.5.7-1) stable; urgency=medium
+
+  * Fix no copper layer detection, needed for KiCad 9
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Tue, 11 Feb 2025 10:05:11 -0300
+
 kidiff (2.5.6-1) stable; urgency=medium
 
   * KiCad 9 experimental support (WIP)

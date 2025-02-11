@@ -28,7 +28,7 @@ __author__ = 'Salvador E. Tropea'
 __copyright__ = 'Copyright 2020-2025, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.5.6'
+__version__ = '2.5.7'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -43,7 +43,7 @@ import logging
 from os.path import isfile, isdir, basename, sep, splitext, abspath, dirname, getmtime
 from os import makedirs, rename, remove
 from pcbnew import (LoadBoard, PLOT_CONTROLLER, FromMM, PLOT_FORMAT_PDF, PLOT_FORMAT_SVG, Edge_Cuts, GetBuildVersion, ToMM,
-                    ZONE_FILLER)
+                    ZONE_FILLER, IsCopperLayer)
 import pcbnew
 import re
 import shlex
@@ -245,9 +245,7 @@ def GenPCBImages(board, file_hash, hash_dir, file_no_ext, layer_names, wanted_la
                 pctl.PlotLayer()
                 # Plot the real layer, disable drill marks in silk screen (8.0.4 added them)
                 pctl.SetLayer(i)
-                logging.error(i)
-                logging.error(i > pcbnew.B_Cu)
-                popt.SetDrillMarksType(NO_DRILL_SHAPE if i > pcbnew.B_Cu else SMALL_DRILL_SHAPE)
+                popt.SetDrillMarksType(SMALL_DRILL_SHAPE if IsCopperLayer(i) else NO_DRILL_SHAPE)
                 pctl.PlotLayer()
                 pctl.ClosePlot()
                 if not isfile(name_pdf_kicad):
