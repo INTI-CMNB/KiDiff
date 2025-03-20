@@ -1,3 +1,9 @@
+kidiff (2.5.8-1) UNRELEASED; urgency=medium
+
+  * The plug-in now compares all schematic pages
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 20 Mar 2025 09:25:54 -0300
+
 kidiff (2.5.7-1) stable; urgency=medium
 
   * Fix no copper layer detection, needed for KiCad 9
