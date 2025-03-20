@@ -88,7 +88,7 @@ if __name__ == '__main__':
                 logger.error('can\'t create cache dir ('+dir_cache+')')
                 dir_cache = None
 
-    command = [dirname(realpath(__file__))+sep+'kicad-diff.py', '--resolution', str(resolution),
+    command = [dirname(realpath(__file__))+sep+'kicad-diff.py', '--all_pages', '--resolution', str(resolution),
                '--old_file_hash', args.old_file_hash]
     if int(args.new_file_hash, 16):
         # When we compare to the currently modified file git uses 0 as hash
