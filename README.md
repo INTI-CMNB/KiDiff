@@ -1,4 +1,4 @@
-# KiDiff (kicad-diff or kicad_pcb-diff)
+# KiDiff (kicad-diff)
 
 This program generates a PDF file showing the changes between two KiCad PCB or
 SCH files.
@@ -89,10 +89,10 @@ You can find a docker image containing KiDiff and other KiCad tools
 ## Git plug-in
 
 1. Install the scripts
-2. To initialize a repo just run the *kicad_pcb-diff-init.py* script from the
-   root of the repo.\
-   This will configure the repo to read extra configuration
-   from the *.gitconfig* file.\
+2. To initialize a repo just run the *kicad-diff-init.py* script from the root
+   of the repo.\
+   This will configure the repo to read extra configuration from
+   the *.gitconfig* file.\
    It will also associate the *kicad_pcb* file
    extension with the *kicad-git-diff.py* script.
 3. The initialization script will create a list of layers to be excluded in
