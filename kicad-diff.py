@@ -271,7 +271,10 @@ def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
     # Create the PDF, or use a cached version
     if not CheckOptions(name_ops, cur_sch_ops) or not isfile(name_pdf):
         logger.info('Plotting the schematic')
-        cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf]
+        cmd = ['eeschema_do']
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            cmd.append('-vv')
+        cmd.extend(['export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf])
         if all:
             cmd.append('--all_pages')
         cmd.extend([file, '.'])
