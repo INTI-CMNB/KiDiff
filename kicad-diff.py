@@ -857,7 +857,7 @@ if __name__ == '__main__':
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
         log_level = logging.DEBUG
-        VERB = "-" + ("v" * args.verbose)
+        VERB = "-" + ("v" * (args.verbose - 1))
     elif args.verbose == 1:
         log_level = logging.INFO
     else:
