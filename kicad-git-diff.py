@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
         log_level = logging.DEBUG
-        verb = '-vv'
+        verb = "-" + ("v" * args.verbose)
     elif args.verbose == 1:
         log_level = logging.INFO
         verb = '-v'

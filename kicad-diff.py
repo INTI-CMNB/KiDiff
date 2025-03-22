@@ -55,6 +55,8 @@ from tempfile import mkdtemp, NamedTemporaryFile
 import time
 
 # Exit error codes
+# Debugging
+VERB = None
 # Fixed values
 INTERNAL_ERROR = 1
 ARGS_ERROR = 2
@@ -271,12 +273,16 @@ def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
     # Create the PDF, or use a cached version
     if not CheckOptions(name_ops, cur_sch_ops) or not isfile(name_pdf):
         logger.info('Plotting the schematic')
-        cmd = ['eeschema_do', 'export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf]
+        cmd = ['eeschema_do']
+        if VERB:
+            cmd.append(VERB)
+        cmd.extend(['export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf])
         if all:
             cmd.append('--all_pages')
         cmd.extend([file, '.'])
         logger.debug('Executing: '+str(cmd))
-        call(cmd)
+        res = call(cmd)
+        logger.debug(res)
         if not isfile(name_pdf):
             logger.error('Failed to plot %s' % name_pdf)
             exit(FAILED_TO_PLOT)
@@ -307,7 +313,10 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
         svgs = glob(pattern_svgs)
         if ops_changed or not svgs:
             logger.info('Plotting the schematic')
-            cmd = ['eeschema_do', 'export', '--file_format', 'svg', '--monochrome', '--all_pages']
+            cmd = ['eeschema_do']
+            if VERB:
+                cmd.append(VERB)
+            cmd.extend(['export', '--file_format', 'svg', '--monochrome', '--all_pages'])
             if not kiri_mode:
                 cmd.append('--no_frame')
             cmd.extend([file, hash_dir])
@@ -382,6 +391,7 @@ def run_command(command):
     logger.debug('Executing: '+shlex.join(command))
     try:
         res = run(command, check=True, stdout=PIPE, stderr=STDOUT).stdout.decode()
+        logger.debug(res)
     except CalledProcessError as e:
         res = ''
         logger.debug('Running {} returned {}'.format(e.cmd, e.returncode))
@@ -847,6 +857,7 @@ if __name__ == '__main__':
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
         log_level = logging.DEBUG
+        VERB = "-" + ("v" * (args.verbose - 1))
     elif args.verbose == 1:
         log_level = logging.INFO
     else:
