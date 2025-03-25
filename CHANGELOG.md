@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [2.5.8] - UNRELEASED
+### Added
+* Debug verbosity is now passed to children (#17)
+
 ### Changed
 * Now the git plug-in defaults to compare all the schematic pages.
   Helps to workaround bugs in KiCad 9 and IMHO is better.
