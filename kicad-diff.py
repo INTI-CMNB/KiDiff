@@ -124,7 +124,12 @@ def SetExcludeEdgeLayer(po, exclude_edge_layer, layer):
         # Doesn't work in 7.0.0. Bug: https://gitlab.com/kicad/code/kicad/-/issues/13841
         include = pcbnew.LSET()
         include.addLayer(layer)
-        po.SetPlotOnAllLayersSelection(include)
+        if (kicad_version_major == 9 and kicad_version_patch >= 1) or kicad_version_major > 9:
+            # API changes in a patch release, this is how KiCad team works ...
+            # They favor cosmetic changes ...
+            po.SetPlotOnAllLayersSequence(include.Seq())
+        else:
+            po.SetPlotOnAllLayersSelection(include)
 
 
 def WriteBBox(board, hash_dir):

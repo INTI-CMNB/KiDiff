@@ -5,8 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [2.5.8] - UNRELEASED
+## [2.5.8] - 2025-04-03
 ### Added
+* Support for broken KiCad 9.0.1 (which changed various details in the API)
 * Debug verbosity is now passed to children (#17)
 
 ### Changed

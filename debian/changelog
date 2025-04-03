@@ -1,6 +1,7 @@
-kidiff (2.5.8-1) UNRELEASED; urgency=medium
+kidiff (2.5.8-1) stable; urgency=medium
 
   * The plug-in now compares all schematic pages
+  * Added support for broken API in KiCad 9.0.1
 
  -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 20 Mar 2025 09:25:54 -0300
 
