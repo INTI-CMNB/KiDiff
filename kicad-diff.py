@@ -78,6 +78,7 @@ is_pcb = True
 use_poppler = True
 # Tools/Compatibility
 CONVERT = 'convert'
+FONT = ''
 # Compress SVG files using scour (KiRi mode)
 use_scour = False
 DEFAULT_LAYER_NAMES = {
@@ -477,7 +478,7 @@ def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resoluti
         extra_name = ' [diff page size]'
     else:
         extra_name = extent = ''
-    text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+extra_name+'\'" '
+    text = ' -font '+FONT+' -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+extra_name+'\'" '
     command = ['bash', '-c',
                '( '+CONVERT+' "'+new_name+'"'+extent+' miff:- ; ' + CONVERT +
                ' "'+old_name+'"'+extent+' miff:- ) | ' + CONVERT +
@@ -519,7 +520,7 @@ def create_diff_stereo_colored(old_name, new_name, diff_name, font_size, layer, 
                ' -opaque black -transparent white "'+added+'"']
     run_command(command)
     run_command([CONVERT, old_name, added, '-composite', removed, '-composite',
-                 '-font', 'helvetica', '-pointsize', font_size, '-draw',
+                 '-font', FONT, '-pointsize', font_size, '-draw',
                  "text 10,"+font_size+" '"+adapt_name(name_layer)+extra_name+"'",
                  diff_name])
     include = True
@@ -557,7 +558,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     if args.threshold and errors > args.threshold:
         logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
         exit(DIFF_TOO_BIG)
-    cmd = [CONVERT, diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
+    cmd = [CONVERT, diff_name, '-font', FONT, '-pointsize', font_size, '-draw',
            'text 10,'+font_size+" '"+adapt_name(name_layer)+extra_name+"'", diff_name]
     logger.debug('Executing: '+str(cmd))
     call(cmd)
@@ -878,6 +879,16 @@ if __name__ == '__main__':
         CONVERT = "magick"
     elif which('convert') is None:
         logger.error('No convert or magick command, install ImageMagick')
+        exit(MISSING_TOOLS)
+    # Check for available fonts
+    cmd = ['identify', '-list', 'font']
+    fonts = run_command(cmd)
+    for font in ['helvetica', 'Open-Sans-Regular', 'Roboto']:
+        if font in fonts:
+            FONT = font
+            break
+    if not FONT:
+        logger.error('No compatible Font found, install one of helvetica, Open-Sans-Regular or Roboto')
         exit(MISSING_TOOLS)
     use_poppler = not args.force_gs
     if which('pdftoppm') is None:
