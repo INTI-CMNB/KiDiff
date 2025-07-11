@@ -76,6 +76,8 @@ kicad_version_major = kicad_version_minor = kicad_version_patch = 0
 cur_pcb_ops = cur_sch_ops = None
 is_pcb = True
 use_poppler = True
+# Tools/Compatibility
+CONVERT = 'convert'
 # Compress SVG files using scour (KiRi mode)
 use_scour = False
 DEFAULT_LAYER_NAMES = {
@@ -420,9 +422,9 @@ def pdf2png(base_name, blank=False, ref=None):
         return sorted(glob(base_name+'-*.png'))
     if isfile(source):
         if use_poppler:
-            cmd = 'cat "{}" | pdftoppm -r {} -gray - | convert - "{}"'.format(source, resolution, dest1)
+            cmd = 'cat "{}" | pdftoppm -r {} -gray - | {} - "{}"'.format(source, resolution, CONVERT, dest1)
         else:
-            cmd = ('convert -density {} "{}" -background white -alpha remove -alpha off -threshold 50% '
+            cmd = (CONVERT + ' -density {} "{}" -background white -alpha remove -alpha off -threshold 50% '
                    '-colorspace Gray -resample {} -depth 8 "{}"'.format(resolution*2, source, resolution, dest1))
         run_command(['bash', '-c', cmd])
     else:
@@ -433,7 +435,7 @@ def pdf2png(base_name, blank=False, ref=None):
         # Create a blank file
         logger.debug('Blanking '+dest1)
         blanked = base_name+'_blanked.png'
-        cmd = ('convert "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, blanked))
+        cmd = (CONVERT + ' "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, blanked))
         run_command(['bash', '-c', cmd])
         remove(dest1)
         dest1 = blanked
@@ -446,7 +448,7 @@ def pdf2png(base_name, blank=False, ref=None):
 
 def create_no_diff(output_dir):
     diff_name = output_dir+sep+'no-diff.png'
-    cmd = ['convert', '-size', '640x480', '-background', 'white', '-fill', 'black', '-pointsize', '72', '-gravity', 'center',
+    cmd = [CONVERT, '-size', '640x480', '-background', 'white', '-fill', 'black', '-pointsize', '72', '-gravity', 'center',
            'label:No diff', diff_name]
     run_command(cmd)
     return diff_name
@@ -477,9 +479,9 @@ def create_diff_stereo(old_name, new_name, diff_name, font_size, layer, resoluti
         extra_name = extent = ''
     text = ' -font helvetica -pointsize '+font_size+' -draw "text 10,'+font_size+' \''+adapt_name(name_layer)+extra_name+'\'" '
     command = ['bash', '-c',
-               '( convert "'+new_name+'"'+extent+' miff:- ;' +
-               '  convert "'+old_name+'"'+extent+' miff:- ) | ' +
-               r'convert - \( -clone 0-1 -compose darken -composite \) ' +
+               '( '+CONVERT+' "'+new_name+'"'+extent+' miff:- ; ' + CONVERT +
+               ' "'+old_name+'"'+extent+' miff:- ) | ' + CONVERT +
+               r' - \( -clone 0-1 -compose darken -composite \) ' +
                text+' -channel RGB -combine "'+diff_name+'"']
     run_command(command)
     include = True
@@ -505,18 +507,18 @@ def create_diff_stereo_colored(old_name, new_name, diff_name, font_size, layer, 
     with NamedTemporaryFile(mode='w', prefix='added', suffix='.png', delete=False) as f:
         added = f.name
     command = ['bash', '-c',
-               '( convert -threshold 50% "'+new_name+'"'+extent+' miff:- ;' +
-               '  convert -threshold 50% -negate "'+old_name+'"'+extent+' miff:- ) | ' +
-               r'convert - -compose darken -composite -negate -fill "'+args.removed_2color+'" ' +
+               '( '+CONVERT+' -threshold 50% "'+new_name+'"'+extent+' miff:- ; ' + CONVERT +
+               ' -threshold 50% -negate "'+old_name+'"'+extent+' miff:- ) | ' + CONVERT +
+               ' - -compose darken -composite -negate -fill "'+args.removed_2color+'" ' +
                ' -opaque black -transparent white "'+removed+'"']
     run_command(command)
     command = ['bash', '-c',
-               '( convert -threshold 50% -negate "'+new_name+'"'+extent+' miff:- ;' +
-               '  convert -threshold 50% "'+old_name+'"'+extent+' miff:- ) | ' +
-               r'convert - -compose darken -composite -negate -fill "'+args.added_2color+'" ' +
+               '( '+CONVERT+' -threshold 50% -negate "'+new_name+'"'+extent+' miff:- ;' +
+               '  ' + CONVERT + ' -threshold 50% "'+old_name+'"'+extent+' miff:- ) | ' +
+               CONVERT + ' - -compose darken -composite -negate -fill "'+args.added_2color+'" ' +
                ' -opaque black -transparent white "'+added+'"']
     run_command(command)
-    run_command(['convert', old_name, added, '-composite', removed, '-composite',
+    run_command([CONVERT, old_name, added, '-composite', removed, '-composite',
                  '-font', 'helvetica', '-pointsize', font_size, '-draw',
                  "text 10,"+font_size+" '"+adapt_name(name_layer)+extra_name+"'",
                  diff_name])
@@ -555,7 +557,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     if args.threshold and errors > args.threshold:
         logger.error('Difference for `{}` is not acceptable ({} > {})'.format(name_layer, errors, args.threshold))
         exit(DIFF_TOO_BIG)
-    cmd = ['convert', diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
+    cmd = [CONVERT, diff_name, '-font', 'helvetica', '-pointsize', font_size, '-draw',
            'text 10,'+font_size+" '"+adapt_name(name_layer)+extra_name+"'", diff_name]
     logger.debug('Executing: '+str(cmd))
     call(cmd)
@@ -565,7 +567,7 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
 def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different, changed):
     old_hash_dir = cache_dir+sep+old_file_hash
     new_hash_dir = cache_dir+sep+new_file_hash
-    files = ['convert']
+    files = [CONVERT]
     # Compute the difference between images for each layer, store JPGs
     font_size = str(int(resolution/5))
     all_layers = {}
@@ -871,8 +873,11 @@ if __name__ == '__main__':
     logger = logging.getLogger(basename(__file__))
 
     # Check the environment
-    if which('convert') is None:
-        logger.error('No convert command, install ImageMagick')
+    if which("magick"):
+        # Use new version of ImageMagick
+        CONVERT = "magick"
+    elif which('convert') is None:
+        logger.error('No convert or magick command, install ImageMagick')
         exit(MISSING_TOOLS)
     use_poppler = not args.force_gs
     if which('pdftoppm') is None:
