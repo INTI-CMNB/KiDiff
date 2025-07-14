@@ -877,17 +877,28 @@ if __name__ == '__main__':
     if which("magick"):
         # Use new version of ImageMagick
         CONVERT = "magick"
-    elif which('convert') is None:
+        logger.debug("Using ImagMagick 7: magick")
+        cmd = ['identify', '-list', 'font']
+        fonts = run_command(cmd)
+        for font in ['NimbusSans-Regular', 'Open-Sans-Regular', 'Roboto', 'Helvetica']:
+            if font in fonts:
+                FONT = font
+                break
+    elif which('convert'):
+        logger.debug("Using ImagMagick 6: convert")
+        cmd = ['convert', '-list', 'font']
+        fonts = run_command(cmd)
+        for font in ['Helvetica', 'Open-Sans-Regular', 'Roboto']:
+            if font in fonts:
+                FONT = font
+                break
+    else:
         logger.error('No convert or magick command, install ImageMagick')
         exit(MISSING_TOOLS)
     # Check for available fonts
-    cmd = ['identify', '-list', 'font']
-    fonts = run_command(cmd)
-    for font in ['helvetica', 'Open-Sans-Regular', 'Roboto']:
-        if font in fonts:
-            FONT = font
-            break
-    if not FONT:
+    if FONT:
+        logger.debug("Using font: "+FONT)
+    else:
         logger.error('No compatible Font found, install one of helvetica, Open-Sans-Regular or Roboto')
         exit(MISSING_TOOLS)
     use_poppler = not args.force_gs
