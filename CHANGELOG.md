@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Support for broken KiCad 9.0.1 (which changed various details in the API)
 * Debug verbosity is now passed to children (#17)
+* ImageMagick 7 experimental support (#19)
+* Error when we can't detect a font (#19)
 
 ### Changed
 * Now the git plug-in defaults to compare all the schematic pages.
