@@ -444,7 +444,7 @@ def pdf2png(base_name, blank=False, ref=None):
         return [dest1]
     if isfile(destm):
         return sorted(glob(base_name+'-*.png'))
-    assert False
+    assert False, f"Failed to convert {source} to PNG"
 
 
 def create_no_diff(output_dir):
