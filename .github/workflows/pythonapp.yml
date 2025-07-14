@@ -15,7 +15,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: setsoft/kicad_auto_test:ki7
+    container: setsoft/kicad_auto_test:ki9
 
     steps:
     - uses: actions/checkout@v3

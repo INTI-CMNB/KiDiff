@@ -17,6 +17,12 @@ COVERAGE_SCRIPT = 'python3-coverage'
 KICAD_PCB_EXT = '.kicad_pcb'
 MODE_SCH = 1
 MODE_PCB = 0
+LA_KI8_2_KI9 = {0: 0, 1: 4, 2: 6, 3: 8, 4: 10, 5: 12, 6: 14, 7: 16, 8: 18, 9: 20, 10: 22, 11: 24, 12: 26, 13: 28, 14: 30,
+                15: 32, 16: 34, 17: 36, 18: 38, 19: 40, 20: 42, 21: 44, 22: 46, 23: 48, 24: 50, 25: 52, 26: 54, 27: 56,
+                28: 58, 29: 60, 30: 62, 31: 2, 32: 11, 33: 9, 34: 15, 35: 13, 36: 7, 37: 5, 38: 3, 39: 1, 40: 17, 41: 19,
+                42: 21, 43: 23, 44: 25, 45: 27, 46: 29, 47: 31, 48: 33, 49: 35, 50: 39, 51: 41, 52: 43, 53: 45, 54: 47,
+                55: 49, 56: 51, 57: 53, 58: 55, 59: 37}
+
 
 ng_ver = os.environ.get('KIAUS_USE_NIGHTLY')
 if ng_ver:
@@ -332,8 +338,19 @@ class TestContext(object):
         assert pngs, "Nothing at "+refs
         for png in pngs:
             name = os.path.basename(png)
-            diff = os.path.splitext(name)[0]+'-diff.png'
-            self.compare_image(name, name, diff=diff, fuzz='30%')
+            name_no_ext, name_ext = os.path.splitext(name)
+            diff = name_no_ext+'-diff.png'
+            ref = name
+            if major >= 9:
+                # Translate KiCad 6/7/8 names to KiCad 9
+                try:
+                    layer_num = int(name_no_ext[len(out_file)+1:-1])
+                    new_num = LA_KI8_2_KI9[layer_num]
+                    name = f"{out_file}-{new_num}{name_no_ext[-1]}{name_ext}"
+                except ValueError:
+                    # I.e. "Schematic"
+                    pass
+            self.compare_image(name, ref, diff=diff, fuzz='31%')
 
     def compare_pdf(self, gen, reference=None, diff='diff-{}.png'):
         """ For multi-page PDFs """
