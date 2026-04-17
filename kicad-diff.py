@@ -316,7 +316,6 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
     files = glob(pattern_pngs)
     # Create the PNG, or use a cached version
     ops_changed = not CheckOptions(name_ops, cur_sch_ops)
-    logger.error(f"ops_changed {ops_changed}")
     if ops_changed or not files:
         svgs = glob(pattern_svgs)
         if ops_changed or not svgs:
