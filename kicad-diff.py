@@ -811,6 +811,44 @@ def get_layer(line):
     return line
 
 
+def add_inner_layers():
+    if kicad_version_major >= 9:
+        for i in range(1, 30):
+            name = 'In'+str(i)+'.Cu'
+            DEFAULT_LAYER_NAMES[(i+1)*2] = name
+    else:
+        for i in range(1, 30):
+            name = 'In'+str(i)+'.Cu'
+            DEFAULT_LAYER_NAMES[pcbnew.In1_Cu+i-1] = name
+
+
+def check_image_magick():
+    global CONVERT
+    global FONT
+    if which("magick"):
+        # Use new version of ImageMagick
+        CONVERT = "magick"
+        logger.debug("Using ImagMagick 7: magick")
+        cmd = ['identify', '-list', 'font']
+        fonts = run_command(cmd)
+        for font in ['NimbusSans-Regular', 'Open-Sans-Regular', 'Roboto', 'Helvetica']:
+            if font in fonts:
+                FONT = font
+                break
+    elif which('convert'):
+        logger.debug("Using ImagMagick 6: convert")
+        cmd = ['convert', '-list', 'font']
+        fonts = run_command(cmd)
+        for font in ['Helvetica', 'Open-Sans-Regular', 'Roboto']:
+            if font in fonts:
+                FONT = font
+                break
+    else:
+        logger.error('No convert or magick command, install ImageMagick')
+        exit(MISSING_TOOLS)
+    return cmd
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='KiCad diff')
 
@@ -852,14 +890,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Fill the names for the inner layers
-    if kicad_version_major >= 9:
-        for i in range(1, 30):
-            name = 'In'+str(i)+'.Cu'
-            DEFAULT_LAYER_NAMES[(i+1)*2] = name
-    else:
-        for i in range(1, 30):
-            name = 'In'+str(i)+'.Cu'
-            DEFAULT_LAYER_NAMES[pcbnew.In1_Cu+i-1] = name
+    add_inner_layers()
 
     # Create a logger with the specified verbosity
     if args.verbose >= 2:
@@ -873,27 +904,7 @@ if __name__ == '__main__':
     logger = logging.getLogger(basename(__file__))
 
     # Check the environment
-    if which("magick"):
-        # Use new version of ImageMagick
-        CONVERT = "magick"
-        logger.debug("Using ImagMagick 7: magick")
-        cmd = ['identify', '-list', 'font']
-        fonts = run_command(cmd)
-        for font in ['NimbusSans-Regular', 'Open-Sans-Regular', 'Roboto', 'Helvetica']:
-            if font in fonts:
-                FONT = font
-                break
-    elif which('convert'):
-        logger.debug("Using ImagMagick 6: convert")
-        cmd = ['convert', '-list', 'font']
-        fonts = run_command(cmd)
-        for font in ['Helvetica', 'Open-Sans-Regular', 'Roboto']:
-            if font in fonts:
-                FONT = font
-                break
-    else:
-        logger.error('No convert or magick command, install ImageMagick')
-        exit(MISSING_TOOLS)
+    cmd = check_image_magick()
     # Check for available fonts
     if FONT:
         logger.debug("Using font: "+FONT)
