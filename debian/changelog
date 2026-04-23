@@ -1,10 +1,10 @@
-kidiff (2.5.9-1) UNRELEASED; urgency=medium
+kidiff (2.5.9-1) stable; urgency=medium
 
   * Added compatibility with ImageMagick 7
   * Better font detection
   * Removed log error message
 
- -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Fri, 17 Apr 2026 08:58:26 -0300
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Thu, 23 Apr 2026 09:09:59 -0300
 
 kidiff (2.5.8-1) stable; urgency=medium
 
