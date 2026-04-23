@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [2.5.9] - UNRELEASED
+### Added
+* Compatibility with ImageMagick 7
+* Better font detection
+
 ### Fixed
 * Debug error message
 
