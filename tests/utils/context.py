@@ -341,7 +341,7 @@ class TestContext(object):
             name_no_ext, name_ext = os.path.splitext(name)
             diff = name_no_ext+'-diff.png'
             ref = name
-            if major >= 9:
+            if False: # major >= 9:
                 # Translate KiCad 6/7/8 names to KiCad 9
                 try:
                     layer_num = int(name_no_ext[len(out_file)+1:-1])
