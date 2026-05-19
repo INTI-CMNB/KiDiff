@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.5.10] - UNRELEASED
+### Fixed
+* Some PDF viewers closed after script exit (#21)
+
+
 ## [2.5.9] - 2026-04-23
 ### Added
 * Compatibility with ImageMagick 7
@@ -12,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 * Debug error message
+
 
 ## [2.5.8] - 2025-04-03
 ### Added

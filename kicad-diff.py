@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-# Copyright (c) 2020-2025 Salvador E. Tropea
-# Copyright (c) 2020-2025 Instituto Nacional de Tecnología Industrial
+# Copyright (c) 2020-2026 Salvador E. Tropea
+# Copyright (c) 2020-2026 Instituto Nacional de Tecnología Industrial
 # License: GPL-2.0
 # Project: KiCad Diff
 # Adapted from: https://github.com/obra/kicad-tools
@@ -25,10 +25,10 @@ For the SCHs we use KiAuto.
 
 """
 __author__ = 'Salvador E. Tropea'
-__copyright__ = 'Copyright 2020-2025, INTI/'+__author__
+__copyright__ = 'Copyright 2020-2026, INTI/'+__author__
 __credits__ = ['Salvador E. Tropea', 'Jesse Vincent']
 __license__ = 'GPL 2.0'
-__version__ = '2.5.9'
+__version__ = '2.5.10'
 __email__ = 'salvador@inti.gob.ar'
 __status__ = 'beta'
 __url__ = 'https://github.com/INTI-CMNB/KiDiff/'
@@ -49,8 +49,7 @@ import re
 import shlex
 from shutil import rmtree, which, copy2
 from struct import unpack
-import subprocess
-from subprocess import call, PIPE, run, STDOUT, CalledProcessError, Popen
+from subprocess import call, PIPE, run, STDOUT, CalledProcessError, Popen, DEVNULL
 from sys import exit
 from tempfile import mkdtemp, NamedTemporaryFile
 import time
@@ -1023,5 +1022,5 @@ if __name__ == '__main__':
     output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed)
 
     if args.no_reader:
-        Popen(['xdg-open', output_pdf], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        Popen(['xdg-open', output_pdf], start_new_session=True, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
         time.sleep(5)
