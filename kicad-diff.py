@@ -49,7 +49,8 @@ import re
 import shlex
 from shutil import rmtree, which, copy2
 from struct import unpack
-from subprocess import call, PIPE, run, STDOUT, CalledProcessError
+import subprocess
+from subprocess import call, PIPE, run, STDOUT, CalledProcessError, Popen
 from sys import exit
 from tempfile import mkdtemp, NamedTemporaryFile
 import time
@@ -1022,5 +1023,5 @@ if __name__ == '__main__':
     output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed)
 
     if args.no_reader:
-        call(['xdg-open', output_pdf])
+        Popen(['xdg-open', output_pdf], start_new_session=True, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(5)
