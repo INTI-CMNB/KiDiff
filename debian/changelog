@@ -1,3 +1,10 @@
+kidiff (2.6.0-1) UNRELEASED; urgency=medium
+
+  * Added KiCad 10 variants support for PCB
+  * Fixed: Some PDF viewers closed after script exit
+
+ -- Salvador Eduardo Tropea <salvador@inti.gob.ar>  Fri, 29 May 2026 09:40:21 -0300
+
 kidiff (2.5.9-1) stable; urgency=medium
 
   * Added compatibility with ImageMagick 7
