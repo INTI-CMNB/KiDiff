@@ -274,7 +274,7 @@ def GenPCBImages(board, file_hash, hash_dir, file_no_ext, layer_names, wanted_la
     return kiri_mode or WriteBBox(board, hash_dir)
 
 
-def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
+def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all, variant):
     """ Plot the schematic in one PDF file """
     name_pdf = hash_dir+sep+layer_names[0]+'.pdf'
     name_ops = hash_dir+sep+'options'
@@ -284,6 +284,8 @@ def GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all):
         cmd = ['eeschema_do']
         if VERB:
             cmd.append(VERB)
+        if variant:
+            cmd.extend(['--variant', variant])
         cmd.extend(['export', '--file_format', 'pdf', '--monochrome', '--no_frame', '--output_name', name_pdf])
         if all:
             cmd.append('--all_pages')
@@ -304,7 +306,7 @@ def svg2png(svg_file, png_file):
     run_command(cmd)
 
 
-def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode):
+def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode, variant):
     """ Plot the schematic using SVG files so we get separated files with correct names.
         Then convert all the pages to PNGs.
         This function is used only when all pages are requested """
@@ -323,6 +325,8 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
             cmd = ['eeschema_do']
             if VERB:
                 cmd.append(VERB)
+            if variant:
+                cmd.extend(['--variant', variant])
             cmd.extend(['export', '--file_format', 'svg', '--monochrome', '--all_pages'])
             if not kiri_mode:
                 cmd.append('--no_frame')
@@ -360,16 +364,22 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
             layer_names[name] = c
 
 
-def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode):
+def GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode, variant):
     if svg_mode:
-        GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode)
+        GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mode, variant)
     else:
-        GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all)
+        GenSCHImageDirect(file, file_hash, hash_dir, file_no_ext, layer_names, all, variant)
 
 
-def GenImages(file, file_hash, all, zones, kiri_mode=False):
+def add_variant(name, variant):
+    if variant:
+        name += '_'+re.sub(r"[\W]+", "_", variant)
+    return name
+
+
+def GenImages(file, file_hash, all, zones, variant, kiri_mode=False):
     # Check if we have a valid cache
-    hash_dir = cache_dir+sep+file_hash
+    hash_dir = add_variant(cache_dir+sep+file_hash, variant)
     logger.debug('Cache for {} will be {}'.format(file, hash_dir))
     if isdir(hash_dir):
         logger.info('cache dir for `%s` already exists' % file)
@@ -382,13 +392,16 @@ def GenImages(file, file_hash, all, zones, kiri_mode=False):
         # This code exposes the fails in KiCad API for tests/board_samples/kicad_8/light_control.kicad_pcb
         # for la in board.GetEnabledLayers().Seq():
         #     logger.debug(f'{la} -> {board.GetLayerName(la)} ({board.GetStandardLayerName(la)})')
+        if variant and hasattr(board, 'SetCurrentVariant'):
+            logger.debug(f'Selecting variant: `{variant}`')
+            board.SetCurrentVariant(variant)
         layer_names, wanted_layers = load_layer_names(file, hash_dir, kiri_mode)
         logger.debug('Layers list: '+str(layer_names))
         logger.debug('Wanted layers: '+str(wanted_layers))
         res = GenPCBImages(board, file_hash, hash_dir, file_no_ext, layer_names, wanted_layers, kiri_mode, zones)
     else:
         layer_names = {0: 'Schematic_all' if args.all_pages else 'Schematic'}
-        GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode)
+        GenSCHImage(file, file_hash, hash_dir, file_no_ext, layer_names, all, kiri_mode, variant)
         # No BBox needed
         res = True
     return layer_names, res
@@ -564,9 +577,9 @@ def create_diff_stat(old_name, new_name, diff_name, font_size, layer, resolution
     return not only_different or (only_different and errors != 0)
 
 
-def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different, changed):
-    old_hash_dir = cache_dir+sep+old_file_hash
-    new_hash_dir = cache_dir+sep+new_file_hash
+def DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, only_different, changed, variant):
+    old_hash_dir = add_variant(cache_dir+sep+old_file_hash, variant)
+    new_hash_dir = add_variant(cache_dir+sep+new_file_hash, variant)
     files = [CONVERT]
     # Compute the difference between images for each layer, store JPGs
     font_size = str(int(resolution/5))
@@ -881,6 +894,7 @@ if __name__ == '__main__':
     parser.add_argument('--resolution', help='Image resolution in DPIs [%(default)s]', type=int, default=150)
     parser.add_argument('--threshold', help='Error threshold for diff stats mode, 0 is no error [%(default)s]',
                         type=thre_type, default=0, metavar='[0-1000000]')
+    parser.add_argument('--variant', help='KiCad 10+ variant', type=str)
     parser.add_argument('--verbose', '-v', action='count', default=0)
     parser.add_argument('--version', action='version', version='%(prog)s '+__version__+' - ' +
                         __copyright__+' - License: '+__license__)
@@ -1011,15 +1025,15 @@ if __name__ == '__main__':
     cur_sch_ops = {'KiCad': kicad_version}
     cur_pcb_ops = {'KiCad': kicad_version, 'zones': args.zones}
 
-    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.zones, args.kiri_mode)
+    layers_old, bbox_old = GenImages(old_file, old_file_hash, args.all_pages, args.zones, args.variant, args.kiri_mode)
     if args.only_cache:
         logger.info('{} SHA1 is {}'.format(old_file, old_file_hash))
         exit(0)
-    layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages, args.zones)
+    layers_new, bbox_new = GenImages(new_file, new_file_hash, args.all_pages, args.zones, args.variant)
 
     zero_size = (0, 0, 0, 0)
     changed = bbox_old != bbox_new and bbox_old != zero_size and bbox_new != zero_size
-    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed)
+    output_pdf = DiffImages(old_file_hash, new_file_hash, layers_old, layers_new, args.only_different, changed, args.variant)
 
     if args.no_reader:
         Popen(['xdg-open', output_pdf], start_new_session=True, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
