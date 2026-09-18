@@ -696,11 +696,15 @@ def load_cached_layers(layers_file):
     layer_names = {}
     name_to_id = {}
     logger.debug('Loading layers from cache '+layers_file)
-    with open(layers_file) as csvfile:
+    # newline='' as the csv docs require; also tolerates caches written by older versions,
+    # where the missing newline='' made every row end \r\r\n and yield a blank row here
+    with open(layers_file, newline='') as csvfile:
         reader = csv.reader(csvfile)
         header = next(reader)
         logger.debug(header)
         for r in reader:
+            if not r:
+                continue
             ilnum = int(r[0])
             lname = r[1]
             lname_user = r[2]
@@ -721,7 +725,8 @@ def save_layers_to_cache(layers_file, all_layers, kiri_mode):
     makedirs(dname, exist_ok=True)
     if kiri_mode:
         return
-    with open(layers_file, 'wt') as csvfile:
+    # Without newline='' the writer's \r\n becomes \r\r\n on Windows, which reads back broken
+    with open(layers_file, 'wt', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(('Layer ID', 'Layer name', 'User name'))
         writer.writerows(all_layers)
