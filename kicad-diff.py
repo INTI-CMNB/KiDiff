@@ -430,7 +430,7 @@ def pdf2png(base_name, blank=False, ref=None):
     if isfile(dest1) and getmtime(dest1) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return [dest1]
-    if isfile(destm) and getmtime(dest1) > source_mtime:
+    if isfile(destm) and getmtime(destm) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return sorted(glob(base_name+'-*.png'))
     if isfile(source):
