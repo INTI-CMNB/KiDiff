@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Fixed
 * Crash instead of a cache hit when only the multi-page PNGs were cached
+* The PNG cache ignored --resolution, so a cache populated at one resolution was
+  reused at another and the requested resolution was silently discarded
 
 
 ## [2.6.0] - 2026-06-01
