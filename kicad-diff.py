@@ -425,14 +425,18 @@ def run_command(command):
 def pdf2png(base_name, blank=False, ref=None):
     source = base_name+'.pdf' if not blank else ref+'.pdf'
     source_mtime = getmtime(source) if isfile(source) else 0
-    dest1 = base_name+'.png'
-    destm = base_name+'-0.png'
+    # The PNGs are rasterized at `resolution`, while the PDFs they come from are vector and
+    # resolution independent. Tagging only the PNG names lets one plot serve every resolution,
+    # and keeps caches made at different resolutions from being reused for each other.
+    tag = '.r{}'.format(resolution)
+    dest1 = base_name+tag+'.png'
+    destm = base_name+tag+'-0.png'
     if isfile(dest1) and getmtime(dest1) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return [dest1]
-    if isfile(destm) and getmtime(dest1) > source_mtime:
+    if isfile(destm) and getmtime(destm) > source_mtime:
         logger.debug(source+" already converted to PNG")
-        return sorted(glob(base_name+'-*.png'))
+        return sorted(glob(base_name+tag+'-*.png'))
     if isfile(source):
         if use_poppler:
             cmd = 'cat "{}" | pdftoppm -r {} -gray - | {} - "{}"'.format(source, resolution, CONVERT, dest1)
@@ -441,13 +445,13 @@ def pdf2png(base_name, blank=False, ref=None):
                    '-colorspace Gray -resample {} -depth 8 "{}"'.format(resolution*2, source, resolution, dest1))
         run_command(['bash', '-c', cmd])
     else:
-        png = ref+'.png'
+        png = ref+tag+'.png'
         assert isfile(png), png
         copy2(png, dest1)
     if blank:
         # Create a blank file
         logger.debug('Blanking '+dest1)
-        blanked = base_name+'_blanked.png'
+        blanked = base_name+tag+'_blanked.png'
         cmd = (CONVERT + ' "{}" -background white -threshold 100% -negate -colorspace Gray "{}"'.format(dest1, blanked))
         run_command(['bash', '-c', cmd])
         remove(dest1)
@@ -455,7 +459,7 @@ def pdf2png(base_name, blank=False, ref=None):
     if isfile(dest1):
         return [dest1]
     if isfile(destm):
-        return sorted(glob(base_name+'-*.png'))
+        return sorted(glob(base_name+tag+'-*.png'))
     assert False, f"Failed to convert {source} to PNG"
 
 
