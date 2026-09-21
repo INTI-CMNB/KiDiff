@@ -360,7 +360,11 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
     # We don't have unique ID layers, so we use a different mechanism
     # This is just a list of sheet names, inside a hash
     for c, f in enumerate(sorted(files)):
-        name = splitext(basename(f.replace(tag, '')))[0]
+        name = f.replace(tag, '')
+        if isfile(name):
+            # Remove old PNGs (without resolution tag)
+            remove(name)
+        name = splitext(basename(name))[0]
         if not name.endswith('_blanked'):
             layer_names[name] = c
 
@@ -430,8 +434,14 @@ def pdf2png(base_name, blank=False, ref=None):
     # resolution independent. Tagging only the PNG names lets one plot serve every resolution,
     # and keeps caches made at different resolutions from being reused for each other.
     tag = '.r{}'.format(resolution)
+    dest1_no_tag = base_name+'.png'
+    destm_no_tag = base_name+'-0.png'
     dest1 = base_name+tag+'.png'
     destm = base_name+tag+'-0.png'
+    if isfile(dest1_no_tag):
+        remove(dest1_no_tag)
+    if isfile(destm_no_tag):
+        remove(destm_no_tag)
     if isfile(dest1) and getmtime(dest1) > source_mtime:
         logger.debug(source+" already converted to PNG")
         return [dest1]
