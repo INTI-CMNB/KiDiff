@@ -312,8 +312,9 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
         This function is used only when all pages are requested """
     if kiri_mode:
         hash_dir += sep+'_KIRI_'+sep+'sch'
+    tag = '.r{}'.format(resolution)
     pattern_svgs = hash_dir+sep+file_no_ext+'*.svg'
-    pattern_pngs = hash_dir+sep+SCHEMATIC_SVG_BASE_NAME+'*.png'
+    pattern_pngs = hash_dir+sep+SCHEMATIC_SVG_BASE_NAME+'*'+tag+'.png'
     name_ops = hash_dir+sep+'options'
     files = glob(pattern_pngs)
     # Create the PNG, or use a cached version
@@ -347,7 +348,7 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
                 dname = dirname(f)
                 name = splitext(basename(f))
                 if name[0].startswith(file_no_ext):
-                    svg2png(f, dname+sep+SCHEMATIC_SVG_BASE_NAME+name[0][len_file_no_ext:]+'.png')
+                    svg2png(f, dname+sep+SCHEMATIC_SVG_BASE_NAME+name[0][len_file_no_ext:]+tag+'.png')
                 else:
                     logger.warning('Unexpected file `{}`'.format(f))
             files = glob(pattern_pngs)
@@ -359,7 +360,7 @@ def GenSCHImageSVG(file, file_hash, hash_dir, file_no_ext, layer_names, kiri_mod
     # We don't have unique ID layers, so we use a different mechanism
     # This is just a list of sheet names, inside a hash
     for c, f in enumerate(sorted(files)):
-        name = splitext(basename(f))[0]
+        name = splitext(basename(f.replace(tag, '')))[0]
         if not name.endswith('_blanked'):
             layer_names[name] = c
 
